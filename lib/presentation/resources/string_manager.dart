@@ -1,0 +1,157 @@
+class AppStrings {
+  static const String pageNotFound = "page_not_found";
+  static const String emailphone = "phone_number";
+  static const String arabic = "arabic";
+  static const String english = "english";
+  static const String loginNow = "login_now";
+  static const String enterCodePhone = "entercode_phone";
+  static const String login = "login";
+  static const String requsterAsinfluComp = "requsterAsinfluComp";
+  static const String byLoggingIn = "byLoggingIn";
+  static const String phoneNumber = "Phone_Number";
+  static const String enterEmailPhone = "enter_email_phone";
+  static const String privatPolicy = "privat_policy";
+  static const String otpVerify = "otp_verify";
+  static const String enter4DigitCode = "enter4_digit_code";
+  static const String reSend = "resend";
+  static const String confirm = "confirm";
+  static const String changeNumber = "change_number";
+  static const String phoneEmailRequired = "Phone_email_required";
+  static const String otpSendSuccess = "otp_send_success";
+  static const String otpStillValid = "otp_still_valid";
+  static const String errorOnSendOtp = "error_on_send_otp";
+  static const String userNotFound = "userـnot_found";
+  static const String PhoneEmailOtpRequired = "Phone_email_otp_required";
+  static const String otpNotGenerated = "otpـnot_generated";
+  static const String otpExpired = "otp_expired";
+  static const String invalidOtp = "invalid_otp";
+  static const String Unauthorized = "Unauthorized";
+  static const String error = "error";
+  static const String selectYourCountry = "select_your_country";
+  static const String home = "home";
+  static const String my_chat = "my_chat";
+  static const String notifications = "notifications";
+  static const String addEditCompany = "add_edit_company";
+  static const String rejectedRequest = "rejected_request";
+  static const String paymentMethod = "payment_method";
+  static const String invoices = "invoices";
+  static const String successfully = "successfully";
+  static const String taxInvoices = "tax_invoices";
+  static const String contactUs = "contact_us";
+  static const String privacyPolicy = "privacy_policy";
+  static const String termsConditions = "terms_conditions";
+  static const String logout = "logout";
+  static const String deleteAccount = "delete_account";
+  static const String searchHere = "search_here";
+  static const String listOfInfluencersMarketingCompanies =
+      "list_influencers_marketing_companies";
+  static const String details = "details";
+  static const String reviews = "reviews";
+  static const String chat = "chat";
+  static const String sow = "sow";
+  static const String available_in = "available_in";
+  static const String total_results = "total_results";
+  static const String applyingFilter = "applying_filter";
+  static const String country = "country";
+  static const String cities = "cities";
+  static const String individual = "individual";
+  static const String company = "company";
+  static const String apply = "apply";
+  static const String clear_filter = "clear_filter";
+  static const String roleRequired = "role_required";
+  static const String noUsersFoundMatching = "no_users_found_matching";
+  static const String countryName = "countryName";
+  static const String companyName = "companyName";
+  static const String commericalName = "commericalName";
+  static const String commericalNumber = "commericalNumber";
+  static const String noInternetConnection = "no_internet_connection";
+  static const String vatNumber = "vatNumber";
+  static const String vpnDetect = "vpn_detect";
+  static const String vatCertificate = "vatCertificate";
+  static const String requesterForm = "requesterForm";
+  static const String breif = "breif";
+  static const String add = "add";
+  static const String addCompany = "addCompany";
+  static const String addMoreCompany = "addMoreCompany";
+  static const String myCompany = "myCompany";
+  static const String editCompany = "editCompany";
+  static const String edit = "edit";
+  static const String description = "description";
+  static const String pleaseSelect = "please_select";
+  static const String confirms = "confirms";
+  static const String sendMessage = "send_message";
+  static const String gorwhichcompanyyou = "gorwhichcompanyyou";
+  static const String addnew = "addnew";
+  static const String files_required = "files_required";
+  static const String unauthorized_customer = "unauthorized_customer";
+  static const String error_creating_company = "error_creating_company";
+  static const String company_created_success = "company_created_success";
+  static const String company_updated_success = "company_updated_success";
+  static const String company_id_required = "company_id_required";
+  static const String company_not_found = "company_not_found";
+  static const String requiredField = "requiredField";
+  static const String noRejectedRequests = "no_rejected_requests";
+  static const String noInvoices = "no_invoices";
+  static const String allTickets = "all_tickets";
+  static const String email = "email";
+  static const String somethingWentWrong = "something_went_wrong";
+  static const String yourCreditCard = 'your_credit_card';
+  static const String addNewCard = 'add_new_card';
+  static const String youCanAddSeveralCreditCards =
+      'you_can_add_several_credit_cards';
+  static const String selectPaymentMethod = 'select_payment_method';
+  static const String deleteCard = 'delete_card';
+  static const String deleteCardConfirmation = 'delete_card_confirmation';
+  static const String cancel = 'cancel';
+  static const String delete = 'delete';
+  static const String username = 'username';
+  static const String enterUsername = 'enter_username';
+  static const String pleaseEnterUsername = 'please_enter_username';
+  static const String password = 'password';
+  static const String enterPassword = 'enter_password';
+  static const String pleaseEnterPassword = 'please_enter_password';
+  static const String passwordMinLength = 'password_min_length';
+  static const String dontHaveAccount = 'dont_have_account';
+  static const String register = 'register';
+  static const String registerAsCustomer = 'register_as_customer';
+  static const String enter4DigitCodeWithPhone =
+      'enter_4_digit_code_with_phone';
+  static const String changeUsername = 'change_username';
+  static const String forgotPassword = "forgot_password";
+  static const String enterEmailUsername = "enter_email_username";
+  static const String enterEmail = "enter_email";
+  static const String pleaseEnterEmail = "please_enter_email";
+  static const String sendOtp = "send_otp";
+  static const String backToLogin = "back_to_login";
+  static const String noCards = 'no_cards';
+  static const String success = 'Success';
+  static const String loading = 'Loading...';
+  static const String noInternet = 'No internet connection';
+  static const String noReviews = "no_reviews";
+
+  // Tax Invoices
+  static const String taxInvoicesTitle = 'Tax Invoices';
+  static const String taxInvoicesEmpty = 'No Tax Invoices Available';
+  static const String taxInvoiceId = 'Invoice ID';
+  static const String taxInvoiceCommercialName = 'Commercial Name';
+  static const String taxInvoiceNoDate = 'No date';
+  static const String taxInvoiceAppFeeVat = 'App Fee + VAT';
+
+  static const String noPdfAvailable = 'No PDF available';
+
+  static const String invoiceCreatedSuccessfully =
+      "invoice_created_successfully";
+
+  // Invoice Release Widget
+  static const String invoice = "invoice";
+  static const String amount = "amount";
+  static const String writeHere = "write_here";
+  static const String vat = "vat";
+  static const String total = "total";
+  static const String appFees = "app_fees";
+  static const String grandTotal = "grand_total";
+  static const String releaseInvoice = "release_invoice";
+
+  static const String enterEitherEmailOrPhone =
+      "Enter either your email or phone number";
+}

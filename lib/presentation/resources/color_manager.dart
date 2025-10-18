@@ -1,0 +1,67 @@
+import 'package:flutter/material.dart';
+
+class ColorManager {
+  static Color primary = const Color(0xFFED9728);
+  static Color lightPrimary = const Color(0xFF03649A);
+  static Color lightGreen = const Color(0xFF03BB86);
+  static Color darkGreen = const Color(0xFF013E09);
+  static Color purple = const Color(0xFF440085);
+  static Color lightGrey = const Color(0xFF9E9E9E);
+  static Color darkGrey = const Color(0xFF525252);
+  static Color black = const Color(0xFF000000);
+  static Color lightBlack = Colors.black54;
+  static Color white = const Color(0xFFFFFFFF);
+  static Color lightError = const Color(0xFFffebee);
+  static Color darkError = const Color(0xFF950009);
+  static Color orange = const Color(0xFFF9AD19);
+  static Color darkblue = const Color(0xFF273B82);
+  static Color bluesky = const Color(0xFF9CD9EE);
+  static Color blue = const Color(0xFF2B95D3);
+  static Color oforange = const Color(0xFFE9B28B);
+  static Color greycard = const Color(0xFFD4D2CB);
+  static Color blueLight800 = const Color(0xFF677BA9);
+  static Color secondary = const Color(0xFFFFFFFF);
+  static const Color gray50 = Color(0xFFF9FAFB);
+  static const Color gray100 = Color(0xFFF3F4F6);
+  static const Color gray300 = Color(0xFFD1D5DB);
+  static const Color gray500 = Color(0xFF6B7280);
+  static Color primaryunderreview = const Color(0xFFF9CF58);
+  static Color pricetagYellow = const Color(0xFFF1D261);
+  static Color pricetaggreen = const Color(0xFF759787);
+  static Color pricetagthree = const Color(0xFF677BA9);
+  static Color secondaryBackground = const Color(0xFFFFFFFF);
+  static Color success = const Color(0xFF4CAF50);
+  static Color primaryGreen = const Color(0xFF7C9688);
+  // new colors
+  static Color grey = const Color(0xFF737477);
+  static Color primaryOpacity70 = const Color(0xB3ED9728);
+  static Color darkPrimary = const Color(0xFFd17d11);
+  static Color grey1 = const Color(0xFF707070);
+  static Color grey2 = const Color(0xFF797979);
+  static const Color error = Color(0xFFEF4444);
+  static Color gray400 = const Color(0xFF98A2B3);
+  static const Color accent = Color(0xFFF5A623);
+  static const Color background = Color(0xFFF5F5F5);
+  static const Color surface = Colors.white;
+  static const Color warning = Color(0xFFF57C00);
+  static const Color info = Color(0xFF1976D2);
+  static const Color gray200 = Color(0xFFEEEEEE);
+  static const Color gray600 = Color(0xFF757575);
+  static const Color gray700 = Color(0xFF616161);
+  static const Color gray800 = Color(0xFF424242);
+  static const Color gray900 = Color(0xFF212121);
+
+  static const Color alertError500 = Color(0xFFD32F2F);
+  static const Color buttonDisable = Color(0xFFE0E0E0);
+  static const Color dropShadow = Color(0x1A000000);
+  static const Color borderYellow = Color(0xFFFFD700);
+  static const Color grey400 = Color(0xFFBDBDBD);
+  static const Color primaryText = Color(0xFF212121);
+  static const Color grey50 = Color(0xFFF9FAFB);
+  static const Color grey100 = Color(0xFFF3F4F6);
+  static const Color primaryGreenr = Color(0xFF4CAF50);
+  static const Color customYellowF1D261 = Color(0xFFF1D261);
+  static const Color customBlue677BA9 = Color(0xFF677BA9);
+  static const Color customGreen759787 = Color(0xFF759787);
+  static const Color custombordercard  = Color(0xFFE0BF48);
+}
