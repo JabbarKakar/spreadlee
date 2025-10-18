@@ -26,7 +26,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
   final ChatService _chatService = ChatService(); // Use singleton
   final MediaCacheService _mediaCacheService;
   final EnhancedMessageStatusHandler _statusHandler =
-      EnhancedMessageStatusHandler();
+  EnhancedMessageStatusHandler();
   List<Chats> chat = [];
   Map<String, List<ChatMessage>> chatMessages = {};
   FToast fToast = FToast();
@@ -44,7 +44,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
 
   // Add user status tracking
   final Map<String, Map<String, bool>> _userOnlineStatus =
-      {}; // chatId -> {userId -> isOnline}
+  {}; // chatId -> {userId -> isOnline}
   final Map<String, DateTime> _userLastSeen = {}; // userId -> lastSeen
 
   ChatCustomerCubit()
@@ -255,7 +255,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
               final updatedMessage = message.copyWith(
                 isRead: true,
                 isSeen:
-                    data['isSeen'] ?? true, // If marked as read, assume seen
+                data['isSeen'] ?? true, // If marked as read, assume seen
                 isReceived: data['isReceived'] ??
                     true, // If marked as read, assume received
               );
@@ -396,7 +396,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
               isRead: true,
               isSeen: data['isSeen'] ?? messages[messageIndex].isSeen,
               isReceived:
-                  data['isReceived'] ?? messages[messageIndex].isReceived,
+              data['isReceived'] ?? messages[messageIndex].isReceived,
             );
             messages[messageIndex] = updatedMessage;
             chatMessages[eventChatId] = messages;
@@ -408,7 +408,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
               isRead: true,
               isSeen: data['isSeen'] ?? messages[messageIndex].isSeen,
               isReceived:
-                  data['isReceived'] ?? messages[messageIndex].isReceived,
+              data['isReceived'] ?? messages[messageIndex].isReceived,
               timestamp: seenAt,
             );
 
@@ -581,7 +581,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
                 chatId: chatIdFromEvent,
                 hasMore: (state as ChatCustomerMessagesSuccessState).hasMore,
                 uploadProgress:
-                    (state as ChatCustomerMessagesSuccessState).uploadProgress,
+                (state as ChatCustomerMessagesSuccessState).uploadProgress,
               ));
             } else if (state is ChatCustomerSuccessState) {
               // If on chat list, emit ChatCustomerSuccessState to refresh the list
@@ -636,7 +636,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
         if (tempIndex == -1 && data['client_message_id'] != null) {
           final clientMessageId = data['client_message_id'];
           tempIndex = messages.indexWhere((m) =>
-              m.clientMessageId == clientMessageId && m.id.startsWith('temp_'));
+          m.clientMessageId == clientMessageId && m.id.startsWith('temp_'));
         }
 
         // Strategy 3: If still no match, try timestamp-based matching for recent messages
@@ -646,7 +646,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
               : DateTime.now();
 
           tempIndex = messages.indexWhere((m) =>
-              m.id.startsWith('temp_') &&
+          m.id.startsWith('temp_') &&
               m.messageCreator?.id == data['messageCreator'] &&
               m.messageDate != null &&
               (m.messageDate!.difference(serverTimestamp).inSeconds).abs() <
@@ -658,13 +658,13 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
           final messageType = data['messageType'];
           if (messageType == 'video' && data['messageVideo'] != null) {
             tempIndex = messages.indexWhere((m) =>
-                m.id.startsWith('temp_') &&
+            m.id.startsWith('temp_') &&
                 m.messageCreator?.id == data['messageCreator'] &&
                 m.messageVideo != null &&
                 m.messageVideo!.contains(data['messageVideo'].split('/').last));
           } else if (messageType == 'image' && data['messagePhotos'] != null) {
             tempIndex = messages.indexWhere((m) =>
-                m.id.startsWith('temp_') &&
+            m.id.startsWith('temp_') &&
                 m.messageCreator?.id == data['messageCreator'] &&
                 m.messagePhotos?.isNotEmpty == true);
           }
@@ -852,7 +852,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
       // Additional check: if this message already exists in chatMessages, skip it
       if (chatMessages.containsKey(chatId)) {
         final existingMessage =
-            chatMessages[chatId]!.any((m) => m.id == messageId);
+        chatMessages[chatId]!.any((m) => m.id == messageId);
         if (existingMessage) {
           if (kDebugMode) {
             print(
@@ -866,7 +866,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
         if (messageData['client_message_id'] != null) {
           final clientMessageId = messageData['client_message_id'];
           final alreadyHandled = chatMessages[chatId]!.any((m) =>
-              m.clientMessageId == clientMessageId &&
+          m.clientMessageId == clientMessageId &&
               !m.id.startsWith('temp_'));
           if (alreadyHandled) {
             if (kDebugMode) {
@@ -936,7 +936,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
         // First try to match by clientMessageId (most reliable)
         if (newMessage.clientMessageId != null) {
           tempMessageIndex = messages.indexWhere((m) =>
-              m.id.startsWith('temp_') &&
+          m.id.startsWith('temp_') &&
               m.clientMessageId == newMessage.clientMessageId);
         }
 
@@ -944,25 +944,25 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
         if (tempMessageIndex == -1 &&
             newMessage.messageText?.isNotEmpty == true) {
           tempMessageIndex = messages.indexWhere((m) =>
-              m.id.startsWith('temp_') &&
+          m.id.startsWith('temp_') &&
               m.messageText == newMessage.messageText &&
               m.messageCreator?.id == newMessage.messageCreator?.id &&
               m.messageDate != null &&
               newMessage.messageDate != null &&
               (m.messageDate!.difference(newMessage.messageDate!).inSeconds)
-                      .abs() <
+                  .abs() <
                   30);
         }
 
         // For messages from current user, try timestamp-based matching
         if (tempMessageIndex == -1 && isFromCurrentUser) {
           tempMessageIndex = messages.indexWhere((m) =>
-              m.id.startsWith('temp_') &&
+          m.id.startsWith('temp_') &&
               m.messageCreator?.id == newMessage.messageCreator?.id &&
               m.messageDate != null &&
               newMessage.messageDate != null &&
               (m.messageDate!.difference(newMessage.messageDate!).inSeconds)
-                      .abs() <
+                  .abs() <
                   5); // Very tight time window for current user messages
         }
 
@@ -971,25 +971,25 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
           if (newMessage.messageVideo != null) {
             // For video messages, match by creator and timestamp (more reliable than URL matching)
             tempMessageIndex = messages.indexWhere((m) =>
-                m.id.startsWith('temp_') &&
+            m.id.startsWith('temp_') &&
                 m.messageCreator?.id == newMessage.messageCreator?.id &&
                 (m.messageVideo != null ||
                     m.messageVideos?.isNotEmpty == true) &&
                 m.messageDate != null &&
                 newMessage.messageDate != null &&
                 (m.messageDate!.difference(newMessage.messageDate!).inSeconds)
-                        .abs() <
+                    .abs() <
                     10);
           } else if (newMessage.messagePhotos?.isNotEmpty == true) {
             tempMessageIndex = messages.indexWhere((m) =>
-                m.id.startsWith('temp_') &&
+            m.id.startsWith('temp_') &&
                 m.messagePhotos?.isNotEmpty == true &&
                 m.messagePhotos!.any(
-                    (photo) => newMessage.messagePhotos!.contains(photo)) &&
+                        (photo) => newMessage.messagePhotos!.contains(photo)) &&
                 m.messageCreator?.id == newMessage.messageCreator?.id);
           } else if (newMessage.messageDocument != null) {
             tempMessageIndex = messages.indexWhere((m) =>
-                m.id.startsWith('temp_') &&
+            m.id.startsWith('temp_') &&
                 m.messageDocument != null &&
                 m.messageDocument == newMessage.messageDocument &&
                 m.messageCreator?.id == newMessage.messageCreator?.id);
@@ -999,7 +999,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
         // Enhanced matching for video messages - check if temp message has local file and new message has server URL
         if (tempMessageIndex == -1 && newMessage.messageVideo != null) {
           tempMessageIndex = messages.indexWhere((m) =>
-              m.id.startsWith('temp_') &&
+          m.id.startsWith('temp_') &&
               m.messageCreator?.id == newMessage.messageCreator?.id &&
               m.messageVideo != null &&
               m.messageVideo!.startsWith('/') && // Local file path
@@ -1007,7 +1007,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
               m.messageDate != null &&
               newMessage.messageDate != null &&
               (m.messageDate!.difference(newMessage.messageDate!).inSeconds)
-                      .abs() <
+                  .abs() <
                   30);
         }
 
@@ -1088,12 +1088,12 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
 
             // Try to find any temporary message from the current user within the last 10 seconds
             final recentTempIndex = messages.indexWhere((m) =>
-                m.id.startsWith('temp_') &&
+            m.id.startsWith('temp_') &&
                 m.messageCreator?.id == newMessage.messageCreator?.id &&
                 m.messageDate != null &&
                 newMessage.messageDate != null &&
                 (m.messageDate!.difference(newMessage.messageDate!).inSeconds)
-                        .abs() <
+                    .abs() <
                     10);
 
             if (recentTempIndex != -1) {
@@ -1150,7 +1150,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
 
           // Check if this message already exists to prevent duplicates
           final existingMessageIndex =
-              messages.indexWhere((m) => m.id == newMessage.id);
+          messages.indexWhere((m) => m.id == newMessage.id);
 
           if (existingMessageIndex == -1) {
             // Add as new message if it doesn't exist (for all users)
@@ -1414,7 +1414,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
 
       // Check connectivity first
       final List<ConnectivityResult> connectivityResult =
-          await (Connectivity().checkConnectivity());
+      await (Connectivity().checkConnectivity());
       if (!connectivityResult.contains(ConnectivityResult.mobile) &&
           !connectivityResult.contains(ConnectivityResult.wifi)) {
         if (kDebugMode) {
@@ -1538,7 +1538,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
     if (_isSyncing[chatId] == true) return;
     _isSyncing[chatId] = true;
     final List<ConnectivityResult> connectivityResult =
-        await (Connectivity().checkConnectivity());
+    await (Connectivity().checkConnectivity());
     if (!connectivityResult.contains(ConnectivityResult.mobile) &&
         !connectivityResult.contains(ConnectivityResult.wifi)) {
       showNoInternetMessage();
@@ -1580,7 +1580,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
           // For fresh message fetch (skip == 0), clear cached messages to prevent duplication
           // For pagination (skip > 0), merge with existing messages
           final existingMessages =
-              skip == 0 ? <ChatMessage>[] : (chatMessages[chatId] ?? []);
+          skip == 0 ? <ChatMessage>[] : (chatMessages[chatId] ?? []);
           final allMessages = [...messages, ...existingMessages];
 
           if (kDebugMode) {
@@ -1749,7 +1749,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
           } else {
             showCustomToast(
               message:
-                  data['message'] ?? 'Failed to update messages from server',
+              data['message'] ?? 'Failed to update messages from server',
               color: ColorManager.lightError,
             );
           }
@@ -1766,7 +1766,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
       String errorMessage = 'Failed to load messages';
       if (error.toString().contains('timeout')) {
         errorMessage =
-            'Request timed out. Please check your internet connection.';
+        'Request timed out. Please check your internet connection.';
       } else if (error.toString().contains('SocketException')) {
         errorMessage = 'Network error. Please check your internet connection.';
       } else if (error.toString().contains('401') ||
@@ -1775,7 +1775,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
       } else if (error.toString().contains('403') ||
           error.toString().contains('Forbidden')) {
         errorMessage =
-            'Access denied. You may not have permission to view this chat.';
+        'Access denied. You may not have permission to view this chat.';
       } else if (error.toString().contains('404') ||
           error.toString().contains('Not Found')) {
         errorMessage = 'Chat not found.';
@@ -2048,7 +2048,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
 
     // Convert messageIds to List<String>
     final List<String> stringMessageIds =
-        messageIds.map((id) => id.toString()).toList();
+    messageIds.map((id) => id.toString()).toList();
 
     // Update messages in chatMessages map if they exist
     if (chatMessages.containsKey(chatId)) {
@@ -2234,7 +2234,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
         messagePhotos: messagePhotos,
         messageVideos: messageVideos,
         messageVideo:
-            messageVideos?.isNotEmpty == true ? messageVideos!.first : null,
+        messageVideos?.isNotEmpty == true ? messageVideos!.first : null,
         messageDocument: messageDocument,
         location: location,
         messageInvoiceRef: messageInvoice,
@@ -2481,7 +2481,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
             (state as ChatCustomerMessagesSuccessState).chatId == chatId) {
           final currentState = state as ChatCustomerMessagesSuccessState;
           final hasTempMessage =
-              currentState.messages.any((m) => m.id == tempId);
+          currentState.messages.any((m) => m.id == tempId);
 
           if (hasTempMessage) {
             if (kDebugMode) {
@@ -2491,7 +2491,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
 
             // Check if there's a permanent message with the same clientMessageId
             final hasPermanentMessage = currentState.messages.any((m) =>
-                m.clientMessageId == tempId &&
+            m.clientMessageId == tempId &&
                 !m.id.startsWith('temp_') &&
                 !m.id.startsWith('optimistic_'));
 
@@ -2519,7 +2519,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
                 (state as ChatCustomerMessagesSuccessState).chatId == chatId) {
               final currentState = state as ChatCustomerMessagesSuccessState;
               final messages =
-                  currentState.messages.where((m) => m.id != tempId).toList();
+              currentState.messages.where((m) => m.id != tempId).toList();
               emit(ChatCustomerMessagesSuccessState(
                 messages: messages,
                 chatId: chatId,
@@ -2540,7 +2540,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
           (state as ChatCustomerMessagesSuccessState).chatId == chatId) {
         final currentState = state as ChatCustomerMessagesSuccessState;
         final messages =
-            currentState.messages.where((m) => m.id != tempId).toList();
+        currentState.messages.where((m) => m.id != tempId).toList();
         emit(ChatCustomerMessagesSuccessState(
           messages: messages,
           chatId: chatId,
@@ -2552,7 +2552,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
         // If we're not in the right state, just remove from chatMessages map
         if (chatMessages.containsKey(chatId)) {
           final messages =
-              chatMessages[chatId]!.where((m) => m.id != tempId).toList();
+          chatMessages[chatId]!.where((m) => m.id != tempId).toList();
           chatMessages[chatId] = messages;
         }
       }
@@ -2586,7 +2586,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
 
   Future<void> getMoreMessages(String chatId, int skip, int limit) async {
     final List<ConnectivityResult> connectivityResult =
-        await (Connectivity().checkConnectivity());
+    await (Connectivity().checkConnectivity());
     if (!connectivityResult.contains(ConnectivityResult.mobile) &&
         !connectivityResult.contains(ConnectivityResult.wifi)) {
       showNoInternetMessage();
@@ -3132,10 +3132,10 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
 
   /// Determine the appropriate message type based on content
   String _determineMessageType(
-    Map<String, dynamic>? location,
-    String? messageInvoiceRef,
-    List<File>? files,
-  ) {
+      Map<String, dynamic>? location,
+      String? messageInvoiceRef,
+      List<File>? files,
+      ) {
     if (messageInvoiceRef != null) {
       return 'invoice';
     } else if (location != null) {
