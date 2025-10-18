@@ -1589,52 +1589,138 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
           }
 
           // Remove duplicates and replace temporary messages with permanent ones
+          // final uniqueMessages = <ChatMessage>[];
+          // final seenIds = <String>{};
+          // final seenClientMessageIds = <String>{};
+          //
+          // for (final message in allMessages) {
+          //   // Skip if we've already seen this exact message ID
+          //   if (seenIds.contains(message.id)) {
+          //     continue;
+          //   }
+          //
+          //   // Check if this is a permanent message that should replace a temporary one
+          //   if (message.clientMessageId != null &&
+          //       message.clientMessageId!.isNotEmpty &&
+          //       !message.id.startsWith('temp_') &&
+          //       !message.id.startsWith('optimistic_')) {
+          //     // This is a permanent message - check if we have a temporary version
+          //     final tempMessageIndex = uniqueMessages.indexWhere((m) =>
+          //         m.clientMessageId == message.clientMessageId &&
+          //         (m.id.startsWith('temp_') || m.id.startsWith('optimistic_')));
+          //
+          //     if (tempMessageIndex != -1) {
+          //       // Replace the temporary message with the permanent one
+          //       if (kDebugMode) {
+          //         print('=== Replacing temporary message with permanent ===');
+          //         print(
+          //             'Temp message ID: ${uniqueMessages[tempMessageIndex].id}');
+          //         print('Permanent message ID: ${message.id}');
+          //         print('Client message ID: ${message.clientMessageId}');
+          //       }
+          //       uniqueMessages[tempMessageIndex] = message;
+          //       seenIds.add(message.id);
+          //       seenClientMessageIds.add(message.clientMessageId!);
+          //       continue;
+          //     }
+          //   }
+          //
+          //   // Add the message if we haven't seen it before
+          //   seenIds.add(message.id);
+          //   if (message.clientMessageId != null &&
+          //       message.clientMessageId!.isNotEmpty) {
+          //     seenClientMessageIds.add(message.clientMessageId!);
+          //   }
+          //   uniqueMessages.add(message);
+          // }
+
+          // Sort messages by date (oldest first for chat - newest at bottom)
+
+          // Enhanced deduplication: Use ID, clientMessageId, timestamp proximity, and content hash
           final uniqueMessages = <ChatMessage>[];
           final seenIds = <String>{};
           final seenClientMessageIds = <String>{};
+          final seenTimestamps = <String>{};  // New: Track by timestamp bucket (±5s) for near-matches
+
+// Helper: Simple content hash for text/media to catch variants (e.g., local vs server URL)
+          String _getContentHash(ChatMessage msg) {
+            final timestampKey = '${msg.messageDate?.millisecondsSinceEpoch ?? 0}';
+            final contentKey = '${msg.messageText ?? ''}_${msg.messagePhotos?.join(',') ?? ''}_${msg.messageVideos?.join(',') ?? ''}_${msg.messageDocument ?? ''}';
+            return '$timestampKey:$contentKey'.hashCode.toString();
+          }
 
           for (final message in allMessages) {
-            // Skip if we've already seen this exact message ID
-            if (seenIds.contains(message.id)) {
+            final messageId = message.id;
+            final clientId = message.clientMessageId ?? '';
+            final timestampBucket = (message.messageDate?.millisecondsSinceEpoch ?? 0) ~/ 5000;  // 5s buckets
+            final contentHash = _getContentHash(message);
+
+            // Skip exact ID matches
+            if (seenIds.contains(messageId)) continue;
+
+            // Skip clientMessageId matches
+            if (clientId.isNotEmpty && seenClientMessageIds.contains(clientId)) continue;
+
+            // Skip near-duplicates: Same timestamp bucket + content hash (catches optimistic vs permanent)
+            final timestampKey = '$timestampBucket:$contentHash';
+            if (seenTimestamps.contains(timestampKey)) {
+              if (kDebugMode) {
+                print('=== Deduped near-duplicate via timestamp+content: $messageId (hash: $contentHash) ===');
+              }
               continue;
             }
 
-            // Check if this is a permanent message that should replace a temporary one
-            if (message.clientMessageId != null &&
-                message.clientMessageId!.isNotEmpty &&
-                !message.id.startsWith('temp_') &&
-                !message.id.startsWith('optimistic_')) {
-              // This is a permanent message - check if we have a temporary version
-              final tempMessageIndex = uniqueMessages.indexWhere((m) =>
-                  m.clientMessageId == message.clientMessageId &&
-                  (m.id.startsWith('temp_') || m.id.startsWith('optimistic_')));
+            // Enhanced temp replacement: Broader matching for media (e.g., local path vs server URL)
+            if (clientId.isNotEmpty &&
+                !messageId.startsWith('temp_') &&
+                !messageId.startsWith('optimistic_')) {
+              // Search for temp by clientId or content/timestamp match
+              final tempMessageIndex = uniqueMessages.indexWhere((m) {
+                final mClientId = m.clientMessageId ?? '';
+                if (mClientId == clientId) return true;
+                // Fallback: Match by content hash + timestamp proximity if no clientId
+                if (mClientId.isEmpty) {
+                  final mHash = _getContentHash(m);
+                  final mBucket = (m.messageDate?.millisecondsSinceEpoch ?? 0) ~/ 5000;
+                  return mHash == contentHash && (mBucket - timestampBucket).abs() <= 1;
+                }
+                return false;
+              });
 
               if (tempMessageIndex != -1) {
-                // Replace the temporary message with the permanent one
+                // Replace with permanent (prefer server URLs for media)
                 if (kDebugMode) {
-                  print('=== Replacing temporary message with permanent ===');
-                  print(
-                      'Temp message ID: ${uniqueMessages[tempMessageIndex].id}');
-                  print('Permanent message ID: ${message.id}');
-                  print('Client message ID: ${message.clientMessageId}');
+                  print('=== Replacing temporary message with permanent (enhanced) ===');
+                  print('Temp ID: ${uniqueMessages[tempMessageIndex].id}');
+                  print('Permanent ID: $messageId');
+                  print('Client ID: $clientId');
+                  print('Content hash match: ${_getContentHash(uniqueMessages[tempMessageIndex])} == $contentHash');
                 }
                 uniqueMessages[tempMessageIndex] = message;
-                seenIds.add(message.id);
-                seenClientMessageIds.add(message.clientMessageId!);
+                seenIds.add(messageId);
+                if (clientId.isNotEmpty) seenClientMessageIds.add(clientId);
+                seenTimestamps.add(timestampKey);
                 continue;
               }
             }
 
-            // Add the message if we haven't seen it before
-            seenIds.add(message.id);
-            if (message.clientMessageId != null &&
-                message.clientMessageId!.isNotEmpty) {
-              seenClientMessageIds.add(message.clientMessageId!);
-            }
+            // Add if unique
+            seenIds.add(messageId);
+            if (clientId.isNotEmpty) seenClientMessageIds.add(clientId);
+            seenTimestamps.add(timestampKey);
             uniqueMessages.add(message);
           }
 
-          // Sort messages by date (oldest first for chat - newest at bottom)
+// Sort messages by date (oldest first for chat - newest at bottom)
+          uniqueMessages.sort((a, b) {
+            final aDate = a.messageDate ?? DateTime.now();
+            final bDate = b.messageDate ?? DateTime.now();
+            return aDate.compareTo(bDate); // Ascending order (oldest first)
+          });
+
+
+
+
           uniqueMessages.sort((a, b) {
             final aDate = a.messageDate ?? DateTime.now();
             final bDate = b.messageDate ?? DateTime.now();
