@@ -99,6 +99,8 @@ class _ChatScreenCustomerState extends State<ChatScreenCustomer>
   @override
   void initState() {
     super.initState();
+    final cubit = context.read<ChatCustomerCubit>();
+    cubit.setCurrentlyOpenChat(widget.chatId);
     _chatProvider = ChatProvider(
       chatId: widget.chatId,
       userId: widget.userId,
@@ -248,6 +250,8 @@ class _ChatScreenCustomerState extends State<ChatScreenCustomer>
 
   @override
   void dispose() {
+    final cubit = context.read<ChatCustomerCubit>();
+    cubit.setCurrentlyOpenChat(null);
     _chatProvider.removeListener(_onChatProviderUpdate);
     _statusHandler.dispose();
     super.dispose();
