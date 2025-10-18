@@ -6,7 +6,7 @@ import 'package:spreadlee/presentation/resources/style_manager.dart';
 import 'package:spreadlee/presentation/widgets/photo_cache_widget.dart';
 import 'package:spreadlee/presentation/widgets/image_viewer_widget.dart';
 import 'dart:io';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
@@ -500,7 +500,7 @@ class _PhotoMessageWidgetState extends State<PhotoMessageWidget> {
       }
 
       // Save to gallery
-      final result = await ImageGallerySaver.saveFile(imagePath);
+      final result = await ImageGallerySaverPlus.saveFile(imagePath);
 
       if (!mounted) return;
       if (result['isSuccess'] == true) {

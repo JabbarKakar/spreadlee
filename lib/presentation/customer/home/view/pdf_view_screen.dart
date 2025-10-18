@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:pdfx/pdfx.dart';
+// import 'package:pdfx/pdfx.dart';
 import 'package:http/http.dart' as http;
 import 'package:spreadlee/presentation/resources/color_manager.dart';
 
@@ -14,7 +14,7 @@ class PDFViewScreen extends StatefulWidget {
 }
 
 class _PDFViewScreenState extends State<PDFViewScreen> {
-  late PdfController pdfController;
+  // late PdfController pdfController;
   bool isLoading = true;
 
   @override
@@ -28,9 +28,9 @@ class _PDFViewScreenState extends State<PDFViewScreen> {
     try {
       final response = await http.get(Uri.parse(widget.pdfUrl));
       if (response.statusCode == 200) {
-        pdfController = PdfController(
-          document: PdfDocument.openData(response.bodyBytes),
-        );
+        // pdfController = PdfController(
+        //   document: PdfDocument.openData(response.bodyBytes),
+        // );
       } else {
         throw Exception('Failed to load PDF');
       }
@@ -44,7 +44,7 @@ class _PDFViewScreenState extends State<PDFViewScreen> {
   @override
   void dispose() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    pdfController.dispose();
+    // pdfController.dispose();
     super.dispose();
   }
 
@@ -94,36 +94,37 @@ class _PDFViewScreenState extends State<PDFViewScreen> {
 
             return Container(
               color: Colors.black,
-              child: PdfView(
-                controller: pdfController,
-                scrollDirection: Axis.vertical,
-                builders: PdfViewBuilders<DefaultBuilderOptions>(
-                  options: const DefaultBuilderOptions(),
-                  documentLoaderBuilder: (_) => Center(
-                    child: CircularProgressIndicator(
-                      color: ColorManager.blueLight800,
-                    ),
-                  ),
-                  pageLoaderBuilder: (_) => Center(
-                    child: CircularProgressIndicator(
-                      color: ColorManager.blueLight800,
-                    ),
-                  ),
-                  errorBuilder: (_, error) => const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, size: 40, color: Colors.red),
-                        SizedBox(height: 8),
-                        Text(
-                          'Failed to load PDF',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+              child: Container(),
+              // child: PdfView(
+              //   controller: pdfController,
+              //   scrollDirection: Axis.vertical,
+              //   builders: PdfViewBuilders<DefaultBuilderOptions>(
+              //     options: const DefaultBuilderOptions(),
+              //     documentLoaderBuilder: (_) => Center(
+              //       child: CircularProgressIndicator(
+              //         color: ColorManager.blueLight800,
+              //       ),
+              //     ),
+              //     pageLoaderBuilder: (_) => Center(
+              //       child: CircularProgressIndicator(
+              //         color: ColorManager.blueLight800,
+              //       ),
+              //     ),
+              //     errorBuilder: (_, error) => const Center(
+              //       child: Column(
+              //         mainAxisAlignment: MainAxisAlignment.center,
+              //         children: [
+              //           Icon(Icons.error_outline, size: 40, color: Colors.red),
+              //           SizedBox(height: 8),
+              //           Text(
+              //             'Failed to load PDF',
+              //             style: TextStyle(color: Colors.white),
+              //           ),
+              //         ],
+              //       ),
+              //     ),
+              //   ),
+              // ),
             );
           },
         ),

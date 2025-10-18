@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pdfx/pdfx.dart';
+// import 'package:pdfx/pdfx.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -16,14 +16,14 @@ class ViewFileScreen extends StatefulWidget {
 }
 
 class _ViewFileScreenState extends State<ViewFileScreen> {
-  PdfController? pdfController;
+  // PdfController? pdfController;
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
     if (widget.pricingDetails != null && widget.pricingDetails!.isNotEmpty) {
-      _loadPdf();
+      // _loadPdf();
     } else {
       setState(() {
         isLoading = false;
@@ -31,42 +31,42 @@ class _ViewFileScreenState extends State<ViewFileScreen> {
     }
   }
 
-  Future<void> _loadPdf() async {
-    try {
-      final uri = Uri.parse(widget.pricingDetails!);
-      final response = await HttpClient().getUrl(uri);
-      final httpResponse = await response.close();
-      final bytes = await httpResponse.fold<Uint8List>(
-        Uint8List(0),
-        (previous, element) => Uint8List.fromList([...previous, ...element]),
-      );
-
-      if (mounted) {
-        setState(() {
-          pdfController = PdfController(
-            document: PdfDocument.openData(bytes),
-          );
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-         const SnackBar(
-            content: Text('Error loading PDF'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
+  // Future<void> _loadPdf() async {
+  //   try {
+  //     final uri = Uri.parse(widget.pricingDetails!);
+  //     final response = await HttpClient().getUrl(uri);
+  //     final httpResponse = await response.close();
+  //     final bytes = await httpResponse.fold<Uint8List>(
+  //       Uint8List(0),
+  //       (previous, element) => Uint8List.fromList([...previous, ...element]),
+  //     );
+  //
+  //     if (mounted) {
+  //       setState(() {
+  //         pdfController = PdfController(
+  //           document: PdfDocument.openData(bytes),
+  //         );
+  //         isLoading = false;
+  //       });
+  //     }
+  //   } catch (e) {
+  //     if (mounted) {
+  //       setState(() {
+  //         isLoading = false;
+  //       });
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //        const SnackBar(
+  //           content: Text('Error loading PDF'),
+  //           backgroundColor: Colors.red,
+  //         ),
+  //       );
+  //     }
+  //   }
+  // }
 
   @override
   void dispose() {
-    pdfController?.dispose();
+    // pdfController?.dispose();
     super.dispose();
   }
 
@@ -108,42 +108,42 @@ class _ViewFileScreenState extends State<ViewFileScreen> {
                     child: CircularProgressIndicator(),
                   ),
                 )
-              else if (widget.pricingDetails != null &&
-                  widget.pricingDetails!.isNotEmpty &&
-                  pdfController != null)
-                Expanded(
-                  child: PdfView(
-                    controller: pdfController!,
-                    onDocumentLoaded: (document) {
-                      setState(() {
-                        isLoading = false;
-                      });
-                    },
-                    onDocumentError: (error) {
-                      setState(() {
-                        isLoading = false;
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                       const SnackBar(
-                          content: Text('Error loading PDF'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    },
-                    builders: PdfViewBuilders<DefaultBuilderOptions>(
-                      options: const DefaultBuilderOptions(),
-                      documentLoaderBuilder: (_) => const Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                      pageLoaderBuilder: (_) => const Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                      errorBuilder: (_, error) => Center(
-                        child: Text('Error: $error'),
-                      ),
-                    ),
-                  ),
-                )
+              // else if (widget.pricingDetails != null &&
+              //     widget.pricingDetails!.isNotEmpty &&
+              //     pdfController != null)
+              //   Expanded(
+              //     child: PdfView(
+              //       controller: pdfController!,
+              //       onDocumentLoaded: (document) {
+              //         setState(() {
+              //           isLoading = false;
+              //         });
+              //       },
+              //       onDocumentError: (error) {
+              //         setState(() {
+              //           isLoading = false;
+              //         });
+              //         ScaffoldMessenger.of(context).showSnackBar(
+              //          const SnackBar(
+              //             content: Text('Error loading PDF'),
+              //             backgroundColor: Colors.red,
+              //           ),
+              //         );
+              //       },
+              //       builders: PdfViewBuilders<DefaultBuilderOptions>(
+              //         options: const DefaultBuilderOptions(),
+              //         documentLoaderBuilder: (_) => const Center(
+              //           child: CircularProgressIndicator(),
+              //         ),
+              //         pageLoaderBuilder: (_) => const Center(
+              //           child: CircularProgressIndicator(),
+              //         ),
+              //         errorBuilder: (_, error) => Center(
+              //           child: Text('Error: $error'),
+              //         ),
+              //       ),
+              //     ),
+              //   )
               else
                 Expanded(
                   child: Center(

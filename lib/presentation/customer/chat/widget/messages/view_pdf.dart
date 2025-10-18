@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pdfx/pdfx.dart';
+// import 'package:pdfx/pdfx.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -16,7 +16,7 @@ class ViewPdf extends StatefulWidget {
 }
 
 class _ViewPdfState extends State<ViewPdf> {
-  PdfController? pdfController;
+  // PdfController? pdfController;
   bool isLoading = true;
   String? _errorMessage;
 
@@ -37,65 +37,65 @@ class _ViewPdfState extends State<ViewPdf> {
     if (widget.messageDocument != null &&
         widget.messageDocument!.isNotEmpty &&
         isLoading) {
-      _loadPdf();
+      // _loadPdf();
     }
   }
 
-  Future<void> _loadPdf() async {
-    if (!mounted) return;
-
-    try {
-      final docPath = widget.messageDocument!;
-      if (docPath.startsWith('http')) {
-        // Download from network
-        final uri = Uri.parse(docPath);
-        final response = await HttpClient().getUrl(uri);
-        final httpResponse = await response.close();
-        final bytes = await httpResponse.fold<Uint8List>(
-          Uint8List(0),
-          (previous, element) => Uint8List.fromList([...previous, ...element]),
-        );
-        if (!mounted) return;
-        setState(() {
-          pdfController = PdfController(
-            document: PdfDocument.openData(bytes),
-          );
-          isLoading = false;
-          _errorMessage = null;
-        });
-      } else {
-        // Open from local file
-        if (!mounted) return;
-        setState(() {
-          pdfController = PdfController(
-            document: PdfDocument.openFile(docPath),
-          );
-          isLoading = false;
-          _errorMessage = null;
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        isLoading = false;
-        _errorMessage = 'Error loading PDF: $e';
-      });
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error loading PDF'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      });
-    }
-  }
+  // Future<void> _loadPdf() async {
+  //   if (!mounted) return;
+  //
+  //   try {
+  //     final docPath = widget.messageDocument!;
+  //     if (docPath.startsWith('http')) {
+  //       // Download from network
+  //       final uri = Uri.parse(docPath);
+  //       final response = await HttpClient().getUrl(uri);
+  //       final httpResponse = await response.close();
+  //       final bytes = await httpResponse.fold<Uint8List>(
+  //         Uint8List(0),
+  //         (previous, element) => Uint8List.fromList([...previous, ...element]),
+  //       );
+  //       if (!mounted) return;
+  //       setState(() {
+  //         pdfController = PdfController(
+  //           document: PdfDocument.openData(bytes),
+  //         );
+  //         isLoading = false;
+  //         _errorMessage = null;
+  //       });
+  //     } else {
+  //       // Open from local file
+  //       if (!mounted) return;
+  //       setState(() {
+  //         pdfController = PdfController(
+  //           document: PdfDocument.openFile(docPath),
+  //         );
+  //         isLoading = false;
+  //         _errorMessage = null;
+  //       });
+  //     }
+  //   } catch (e) {
+  //     if (!mounted) return;
+  //     setState(() {
+  //       isLoading = false;
+  //       _errorMessage = 'Error loading PDF: $e';
+  //     });
+  //     WidgetsBinding.instance.addPostFrameCallback((_) {
+  //       if (mounted) {
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           const SnackBar(
+  //             content: Text('Error loading PDF'),
+  //             backgroundColor: Colors.red,
+  //           ),
+  //         );
+  //       }
+  //     });
+  //   }
+  // }
 
   @override
   void dispose() {
-    pdfController?.dispose();
+    // pdfController?.dispose();
     super.dispose();
   }
 
@@ -149,53 +149,53 @@ class _ViewPdfState extends State<ViewPdf> {
                     ),
                   ),
                 )
-              else if (widget.messageDocument != null &&
-                  widget.messageDocument!.isNotEmpty &&
-                  pdfController != null)
-                Expanded(
-                  child: PdfView(
-                    controller: pdfController!,
-                    onDocumentLoaded: (document) {
-                      if (mounted) {
-                        setState(() {
-                          isLoading = false;
-                        });
-                      }
-                    },
-                    onDocumentError: (error) {
-                      if (mounted) {
-                        setState(() {
-                          isLoading = false;
-                          _errorMessage = 'Error loading PDF: $error';
-                        });
-
-                        // Show error message after the widget is fully built
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Error loading PDF'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        });
-                      }
-                    },
-                    builders: PdfViewBuilders<DefaultBuilderOptions>(
-                      options: const DefaultBuilderOptions(),
-                      documentLoaderBuilder: (_) => const Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                      pageLoaderBuilder: (_) => const Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                      errorBuilder: (_, error) => const Center(
-                        child: Text('Error loading PDF'),
-                      ),
-                    ),
-                  ),
-                )
+              // else if (widget.messageDocument != null &&
+              //     widget.messageDocument!.isNotEmpty &&
+              //     pdfController != null)
+              //   Expanded(
+              //     child: PdfView(
+              //       controller: pdfController!,
+              //       onDocumentLoaded: (document) {
+              //         if (mounted) {
+              //           setState(() {
+              //             isLoading = false;
+              //           });
+              //         }
+              //       },
+              //       onDocumentError: (error) {
+              //         if (mounted) {
+              //           setState(() {
+              //             isLoading = false;
+              //             _errorMessage = 'Error loading PDF: $error';
+              //           });
+              //
+              //           // Show error message after the widget is fully built
+              //           WidgetsBinding.instance.addPostFrameCallback((_) {
+              //             if (mounted) {
+              //               ScaffoldMessenger.of(context).showSnackBar(
+              //                 const SnackBar(
+              //                   content: Text('Error loading PDF'),
+              //                   backgroundColor: Colors.red,
+              //                 ),
+              //               );
+              //             }
+              //           });
+              //         }
+              //       },
+              //       builders: PdfViewBuilders<DefaultBuilderOptions>(
+              //         options: const DefaultBuilderOptions(),
+              //         documentLoaderBuilder: (_) => const Center(
+              //           child: CircularProgressIndicator(),
+              //         ),
+              //         pageLoaderBuilder: (_) => const Center(
+              //           child: CircularProgressIndicator(),
+              //         ),
+              //         errorBuilder: (_, error) => const Center(
+              //           child: Text('Error loading PDF'),
+              //         ),
+              //       ),
+              //     ),
+              //   )
               else
                 Expanded(
                   child: Center(

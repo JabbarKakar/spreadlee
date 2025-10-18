@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
-import 'package:pdfx/pdfx.dart';
+// import 'package:pdfx/pdfx.dart';
 import 'package:spreadlee/core/constant.dart';
 import 'package:spreadlee/domain/tax_invoice_model.dart';
 import 'package:spreadlee/presentation/resources/color_manager.dart';
@@ -32,7 +32,7 @@ class _TaxInvoiceInfoViewState extends State<TaxInvoiceInfoView> {
   final scaffoldKey = GlobalKey<ScaffoldState>();
   Uint8List? _generatedPdfData;
   bool _isGenerating = false;
-  PdfController? _pdfController;
+  // PdfController? _pdfController;
   String? _errorMessage;
 
   @override
@@ -44,17 +44,17 @@ class _TaxInvoiceInfoViewState extends State<TaxInvoiceInfoView> {
 
   @override
   void dispose() {
-    _pdfController?.dispose();
+    // _pdfController?.dispose();
     _model.dispose();
     super.dispose();
   }
 
   Future<void> _initializePdfController(Uint8List pdfBytes) async {
     try {
-      _pdfController?.dispose();
-      _pdfController = PdfController(
-        document: PdfDocument.openData(pdfBytes),
-      );
+      // _pdfController?.dispose();
+      // _pdfController = PdfController(
+      //   document: PdfDocument.openData(pdfBytes),
+      // );
       setState(() {
         _errorMessage = null;
       });
@@ -281,46 +281,46 @@ class _TaxInvoiceInfoViewState extends State<TaxInvoiceInfoView> {
       );
     }
 
-    if (_pdfController != null) {
-      return PdfView(
-        controller: _pdfController!,
-        scrollDirection: Axis.vertical,
-        pageSnapping: true,
-        builders: PdfViewBuilders<DefaultBuilderOptions>(
-          options: const DefaultBuilderOptions(),
-          documentLoaderBuilder: (_) =>
-              const Center(child: LoadingIndicator(size: AppSize.s40)),
-          pageLoaderBuilder: (_) =>
-              const Center(child: LoadingIndicator(size: AppSize.s20)),
-          errorBuilder: (_, error) => Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Error displaying PDF: $error',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontFamily: Constants.fontFamily,
-                        color: ColorManager.error,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSize.s16),
-                ElevatedButton(
-                  onPressed: _generatePdfIfNeeded,
-                  child: Text(
-                    'Try Again',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontFamily: Constants.fontFamily,
-                          color: ColorManager.white,
-                        ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
+    // if (_pdfController != null) {
+    //   return PdfView(
+    //     controller: _pdfController!,
+    //     scrollDirection: Axis.vertical,
+    //     pageSnapping: true,
+    //     builders: PdfViewBuilders<DefaultBuilderOptions>(
+    //       options: const DefaultBuilderOptions(),
+    //       documentLoaderBuilder: (_) =>
+    //           const Center(child: LoadingIndicator(size: AppSize.s40)),
+    //       pageLoaderBuilder: (_) =>
+    //           const Center(child: LoadingIndicator(size: AppSize.s20)),
+    //       errorBuilder: (_, error) => Center(
+    //         child: Column(
+    //           mainAxisAlignment: MainAxisAlignment.center,
+    //           children: [
+    //             Text(
+    //               'Error displaying PDF: $error',
+    //               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+    //                     fontFamily: Constants.fontFamily,
+    //                     color: ColorManager.error,
+    //                   ),
+    //               textAlign: TextAlign.center,
+    //             ),
+    //             const SizedBox(height: AppSize.s16),
+    //             ElevatedButton(
+    //               onPressed: _generatePdfIfNeeded,
+    //               child: Text(
+    //                 'Try Again',
+    //                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+    //                       fontFamily: Constants.fontFamily,
+    //                       color: ColorManager.white,
+    //                     ),
+    //               ),
+    //             ),
+    //           ],
+    //         ),
+    //       ),
+    //     ),
+    //   );
+    // }
 
     if (widget.invoice.tax_invoice_pdf != null &&
         widget.invoice.tax_invoice_pdf!.isNotEmpty) {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:pdfx/pdfx.dart';
+// import 'package:pdfx/pdfx.dart';
 
 /// Project spreadLee
 
@@ -26,33 +26,33 @@ class PolicyAndTerms extends StatefulWidget {
 }
 
 class _PolicyAndTermsState extends State<PolicyAndTerms> {
-  late final PdfController controller;
+  // late final PdfController controller;
   int totalPageCount = 0;
   int currentPage = 1;
 
   @override
   void initState() {
     super.initState();
-    controller = PdfController(document: PdfDocument.openAsset(widget.documentType.docPath));
+    // controller = PdfController(document: PdfDocument.openAsset(widget.documentType.docPath));
   }
 
   @override
   void dispose() {
-    controller.dispose();
+    // controller.dispose();
     super.dispose();
   }
 
   void _goToPreviousPage() {
     if (currentPage > 1) {
       HapticFeedback.mediumImpact();
-      controller.previousPage(duration: const Duration(milliseconds: 400), curve: Curves.linear);
+      // controller.previousPage(duration: const Duration(milliseconds: 400), curve: Curves.linear);
     }
   }
 
   void _goToNextPage() {
     if (currentPage < totalPageCount) {
       HapticFeedback.mediumImpact();
-      controller.nextPage(duration: const Duration(milliseconds: 400), curve: Curves.linear);
+      // controller.nextPage(duration: const Duration(milliseconds: 400), curve: Curves.linear);
     }
   }
 
@@ -80,13 +80,14 @@ class _PolicyAndTermsState extends State<PolicyAndTerms> {
           ),
         ],
       ),
-      body: PdfView(
-        controller: controller,
-        scrollDirection: Axis.vertical,
-        pageSnapping: false,
-        onDocumentLoaded: (document) => setState(() => totalPageCount = document.pagesCount),
-        onPageChanged: (page) => setState(() => currentPage = page),
-      ),
+      body: Container(),
+      // body: PdfView(
+      //   controller: controller,
+      //   scrollDirection: Axis.vertical,
+      //   pageSnapping: false,
+      //   onDocumentLoaded: (document) => setState(() => totalPageCount = document.pagesCount),
+      //   onPageChanged: (page) => setState(() => currentPage = page),
+      // ),
     );
   }
 }

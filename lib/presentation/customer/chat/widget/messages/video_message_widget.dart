@@ -13,7 +13,7 @@ import 'package:chewie/chewie.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import '../../view/chat_screen.dart';
 
 class VideoMessageCustomerWidget extends StatefulWidget {
@@ -527,7 +527,7 @@ class _VideoMessageCustomerWidgetState
       }
 
       // Save to gallery
-      final result = await ImageGallerySaver.saveFile(videoPath);
+      final result = await ImageGallerySaverPlus.saveFile(videoPath);
 
       if (!mounted) return;
       if (result['isSuccess'] == true) {

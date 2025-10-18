@@ -26,6 +26,7 @@ enum PaymentMethod {
   }
 }
 
+// HyperPay plugin temporarily disabled
 // final FlutterHyperPay flutterHyperPay = FlutterHyperPay(
 //   shopperResultUrl: InAppPaymentSetting.shopperResultUrl, // return back to app
 //   paymentMode: PaymentMode.live, // test or live
@@ -38,23 +39,9 @@ Future<void> payRequestNowReadyUI({
   FutureVoidCallback? checkStatus,
   FutureVoidCallback? registerCard,
 }) async {
-  // PaymentResultData paymentResultData = await flutterHyperPay.readyUICards(
-  //   readyUI: ReadyUI(
-  //     brandsName: paymentMethod.brands,
-  //     checkoutId: checkoutId,
-  //     merchantIdApplePayIOS: InAppPaymentSetting.merchantId,
-  //     countryCodeApplePayIOS: InAppPaymentSetting.countryCode,
-  //     companyNameApplePayIOS: "Spreadlee",
-  //     themColorHexIOS: "#000000",
-  //     setStorePaymentDetailsMode: false, // store payment details for future use
-  //   ),
-  // );
-
-  // if (paymentResultData.paymentResult == PaymentResult.success ||
-  //     paymentResultData.paymentResult == PaymentResult.sync) {
-  //   await checkStatus?.call();
-  //   await registerCard?.call();
-  // }
+  // HyperPay plugin temporarily disabled
+  print('HyperPay payment temporarily disabled');
+  // TODO: Implement alternative payment method or re-enable HyperPay
 }
 
 class InAppPaymentSetting {
