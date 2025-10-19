@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
 import '../../../resources/color_manager.dart';
 
-class CloseChatDialog extends StatelessWidget {
-  final VoidCallback onClose;
+typedef FutureVoidCallback = Future<void> Function();
+
+class CloseChatDialog extends StatefulWidget {
+  final FutureVoidCallback onClose;
 
   const CloseChatDialog({
     super.key,
     required this.onClose,
   });
+
+  @override
+  State<CloseChatDialog> createState() => _CloseChatDialogState();
+}
+
+class _CloseChatDialogState extends State<CloseChatDialog> {
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +40,7 @@ class CloseChatDialog extends StatelessWidget {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: () {
+                    onPressed: _isLoading ? null : () {
                       if (Navigator.canPop(context)) {
                         Navigator.pop(context);
                       }
@@ -54,9 +63,21 @@ class CloseChatDialog extends StatelessWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () {
-                        onClose();
-                        // Don't pop here, let the parent handle it
+                      onPressed: _isLoading
+                          ? null
+                          : () async {
+                        setState(() {
+                          _isLoading = true;
+                        });
+                        try {
+                          await widget.onClose();
+                        } finally {
+                          if (mounted) {
+                            setState(() {
+                              _isLoading = false;
+                            });
+                          }
+                        }
                       },
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: ColorManager.blueLight800),
@@ -65,7 +86,16 @@ class CloseChatDialog extends StatelessWidget {
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 12.0),
                       ),
-                      child: Text(
+                      child: _isLoading
+                          ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(ColorManager.blueLight800),
+                        ),
+                      )
+                          : Text(
                         'Yes',
                         style: TextStyle(
                           fontFamily: 'Poppins',
@@ -78,7 +108,7 @@ class CloseChatDialog extends StatelessWidget {
                   const SizedBox(width: 16),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: _isLoading ? null : () {
                         if (Navigator.canPop(context)) {
                           Navigator.pop(context);
                         }

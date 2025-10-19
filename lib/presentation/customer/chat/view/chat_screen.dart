@@ -99,6 +99,8 @@ class _ChatScreenCustomerState extends State<ChatScreenCustomer>
   @override
   void initState() {
     super.initState();
+    final cubit = context.read<ChatCustomerCubit>();
+    cubit.setCurrentlyOpenChat(widget.chatId);
     _chatProvider = ChatProvider(
       chatId: widget.chatId,
       userId: widget.userId,
@@ -248,6 +250,8 @@ class _ChatScreenCustomerState extends State<ChatScreenCustomer>
 
   @override
   void dispose() {
+    final cubit = context.read<ChatCustomerCubit>();
+    cubit.setCurrentlyOpenChat(null);
     _chatProvider.removeListener(_onChatProviderUpdate);
     _statusHandler.dispose();
     super.dispose();
@@ -381,6 +385,52 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
         _markMessagesAsReadWhenAppropriate();
       }
     });
+  }
+
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    if (state == AppLifecycleState.resumed) {
+      // ✅ NEW: Reinitialize socket and rejoin chat room on resume after lock
+      if (mounted) {
+        try {
+          final chatProvider = ChatProviderInherited.of(context);
+          final chatService = Provider.of<ChatService>(context, listen: false);
+
+          // Wait briefly for socket to stabilize post-resume
+          Future.delayed(const Duration(milliseconds: 500), () async {
+            if (mounted) {
+              // Ensure socket is ready and rejoin room
+              await chatService.waitForSocketReady();
+              chatProvider.joinChatRoom(widget.chatId);
+
+              // Optional: Force a lightweight refresh of recent messages if needed
+              // (Avoid full fetch to prevent unnecessary network calls)
+              if (kDebugMode) {
+                print('=== ChatScreen: Resumed from lock - rejoined room ${widget.chatId} ===');
+              }
+
+              // Trigger UI update via provider
+              chatProvider.forceUIUpdate();
+            }
+          });
+        } catch (e) {
+          if (kDebugMode) {
+            print('Error resuming socket on unlock: $e');
+          }
+        }
+      }
+    } else if (state == AppLifecycleState.paused) {
+      // Optional: Leave room or pause listeners to optimize battery
+      // (ChatProvider handles this in dispose, but explicit here for clarity)
+      final chatProvider = ChatProviderInherited.of(context);
+      chatProvider.leaveChatRoom(widget.chatId);
+      if (kDebugMode) {
+        print('=== ChatScreen: Paused (locked) - left room ${widget.chatId} ===');
+      }
+    }
   }
 
   // Enhanced provider update handler for real-time updates with debouncing
