@@ -800,9 +800,10 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
           // Update the message list with initial messages
           _updateMessageList(widget.initialMessages!, scrollToBottom: false);
 
-          // Force check visible messages when initial messages are loaded
+          // Mark all unread messages as read when chat opens with initial messages
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
+              _markAllUnreadMessagesAsRead(widget.initialMessages!);
               _forceCheckVisibleMessages();
             }
           });
@@ -891,9 +892,10 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
           });
           _updateMessageList(state.messages, scrollToBottom: true);
 
-          // Force check visible messages after initial fetch
+          // Mark all unread messages as read when chat opens
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
+              _markAllUnreadMessagesAsRead(state.messages);
               _forceCheckVisibleMessages();
             }
           });
@@ -1219,12 +1221,12 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
     final isEmpty = currentNotifierMessages.isEmpty;
 
     if (hasNewMessages || isEmpty) {
-      // Update the message list with new messages (including optimistic ones) FIRST
-      _updateMessageList(newMessages);
-
-      // THEN check for new messages that need to be marked as read immediately
-      // This ensures _previousMessageIds is updated before checking for new messages
+      // CRITICAL: Check for new messages BEFORE updating the message list
+      // This ensures _previousMessageIds hasn't been updated yet
       _checkAndMarkNewMessagesAsRead(newMessages);
+      
+      // THEN update the message list (which updates _previousMessageIds)
+      _updateMessageList(newMessages);
 
       // Force check visible messages to ensure they are marked as read
       _forceCheckVisibleMessages();
@@ -1240,6 +1242,85 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
       setState(() {
         _isLoadingMessages = false;
       });
+    }
+  }
+
+  /// Mark ALL unread messages in the chat as read when opening the chat
+  void _markAllUnreadMessagesAsRead(List<ChatMessage> messages) {
+    if (!mounted) return;
+    
+    try {
+      final currentUserId = widget.userId;
+      final unreadMessageIds = <String>{};
+
+      for (final message in messages) {
+        // Skip if message is from current user, deleted, or already marked as read
+        if (message.messageCreator?.id == currentUserId ||
+            message.isDeleted == true ||
+            _markedAsReadIds.contains(message.id) ||
+            message.isRead == true ||
+            message.isSeen == true) {
+          continue;
+        }
+
+        // This is an unread message - mark it as read
+        unreadMessageIds.add(message.id);
+      }
+
+      // Filter out invalid/temporary message IDs
+      final validMessageIds = unreadMessageIds
+          .where((id) => 
+              id.isNotEmpty && 
+              !id.startsWith('temp_') && 
+              !id.startsWith('optimistic_') &&
+              id.length > 10) // Basic validation for MongoDB ObjectIds
+          .toList();
+
+      // Mark ALL unread messages as read
+      if (validMessageIds.isNotEmpty) {
+        if (kDebugMode) {
+          print('=== Customer ChatScreen: Marking ALL ${validMessageIds.length} unread messages as read on chat open ===');
+          print('Chat ID: ${widget.chatId}');
+          print('Valid Message IDs to mark as read: $validMessageIds');
+          if (unreadMessageIds.length != validMessageIds.length) {
+            print('WARNING: Filtered out ${unreadMessageIds.length - validMessageIds.length} invalid/temporary IDs');
+          }
+        }
+        
+        // Add to marked as read set BEFORE calling the API to prevent duplicates
+        _markedAsReadIds.addAll(validMessageIds);
+        _previousMessageIds.addAll(validMessageIds);
+        
+        // Mark as delivered first, then as read
+        context.read<ChatCustomerCubit>().markMessagesAsDelivered(
+              widget.chatId,
+              validMessageIds,
+            );
+
+        // Small delay to ensure delivery status is processed before read status
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            if (kDebugMode) {
+              print('Customer ChatScreen: Calling cubit.markMessagesAsRead for ALL ${validMessageIds.length} unread messages');
+            }
+            context.read<ChatCustomerCubit>().markMessagesAsRead(
+                  widget.chatId,
+                  validMessageIds,
+                );
+          }
+        });
+      } else {
+        if (kDebugMode) {
+          print('Customer ChatScreen: No valid unread message IDs to mark as read on chat open');
+          if (unreadMessageIds.isNotEmpty) {
+            print('WARNING: All ${unreadMessageIds.length} message IDs were invalid/temporary: $unreadMessageIds');
+          }
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Customer ChatScreen: Error marking all unread messages as read: $e');
+      }
     }
   }
 
@@ -1268,6 +1349,12 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
 
       // Mark new messages as read immediately
       if (unreadMessageIds.isNotEmpty) {
+        if (kDebugMode) {
+          print('=== Customer ChatScreen: Marking ${unreadMessageIds.length} new messages as read ===');
+          print('Chat ID: ${widget.chatId}');
+          print('Message IDs to mark as read: $unreadMessageIds');
+        }
+        
         // Add to marked as read set BEFORE calling the API to prevent duplicates
         _markedAsReadIds.addAll(unreadMessageIds);
         _previousMessageIds.addAll(unreadMessageIds);
@@ -1280,14 +1367,29 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
 
         // Small delay to ensure delivery status is processed before read status
         Future.delayed(const Duration(milliseconds: 100), () {
-          context.read<ChatCustomerCubit>().markMessagesAsRead(
-                widget.chatId,
-                unreadMessageIds.toList(),
-              );
+          if (mounted) {
+            if (kDebugMode) {
+              print('Customer ChatScreen: Calling cubit.markMessagesAsRead for ${unreadMessageIds.length} messages');
+            }
+            context.read<ChatCustomerCubit>().markMessagesAsRead(
+                  widget.chatId,
+                  unreadMessageIds.toList(),
+                );
+          } else {
+            if (kDebugMode) {
+              print('Customer ChatScreen: Widget not mounted, skipping markMessagesAsRead');
+            }
+          }
         });
+      } else {
+        if (kDebugMode) {
+          print('Customer ChatScreen: No unread messages to mark as read');
+        }
       }
     } catch (e) {
-      // Handle error silently
+      if (kDebugMode) {
+        print('Customer ChatScreen: Error marking new messages as read: $e');
+      }
     }
   }
 

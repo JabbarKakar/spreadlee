@@ -1909,10 +1909,16 @@ class ChatBusinessCubit extends Cubit<ChatBusinessState> {
       print('=== Business Cubit: Mark Messages As Read ===');
       print('Chat ID: $chatId');
       print('Message IDs: $messageIds');
+      print('Message IDs count: ${messageIds.length}');
     }
 
     // Remove the state check so it works on both home and chat screens
-    if (messageIds.isEmpty) return;
+    if (messageIds.isEmpty) {
+      if (kDebugMode) {
+        print('Business Cubit: messageIds is EMPTY, returning without marking as read!');
+      }
+      return;
+    }
 
     // Update chat list unread count
     final chatIndex = chat.indexWhere((c) => c.sId == chatId);
@@ -1988,9 +1994,15 @@ class ChatBusinessCubit extends Cubit<ChatBusinessState> {
 
     // Send read status to server
     if (kDebugMode) {
-      print('Calling ChatService.markMessagesAsRead');
+      print('=== Business Cubit: Calling ChatService.markMessagesAsRead ===');
+      print('  Chat ID: $chatId');
+      print('  Message IDs: $messageIds');
+      print('  Message count: ${messageIds.length}');
     }
     _chatService.markMessagesAsRead(chatId, messageIds);
+    if (kDebugMode) {
+      print('Business Cubit: ChatService.markMessagesAsRead called successfully');
+    }
     // Update last seen message ID to the latest in this chat
     if (chatMessages.containsKey(chatId) && chatMessages[chatId]!.isNotEmpty) {
       final latestMessage = chatMessages[chatId]!.last;

@@ -1898,11 +1898,31 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
   }
 
   void markMessagesAsRead(String chatId, List<String> messageIds) {
+    if (kDebugMode) {
+      print('=== Customer Cubit: Mark Messages As Read ===');
+      print('Chat ID: $chatId');
+      print('Message IDs: $messageIds');
+      print('Message IDs count: ${messageIds.length}');
+    }
+    
     // Remove the state check so it works on both home and chat screens
-    if (messageIds.isEmpty) return;
+    if (messageIds.isEmpty) {
+      if (kDebugMode) {
+        print('Customer Cubit: messageIds is EMPTY, returning without marking as read!');
+      }
+      return;
+    }
 
+    if (kDebugMode) {
+      print('Customer Cubit: Step 1 - Updating chat list unread count');
+    }
+    
     // Update chat list unread count
     final chatIndex = chat.indexWhere((c) => c.sId == chatId);
+    if (kDebugMode) {
+      print('Customer Cubit: Chat index: $chatIndex, Total chats: ${chat.length}');
+    }
+    
     if (chatIndex != -1) {
       final updatedChat = chat[chatIndex].copyWith(
         chatNotSeenMessages: 0,
@@ -1915,6 +1935,16 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
         print('=== CUBIT: Marked messages as read for chat $chatId ===');
         print('Not refreshing chat list to preserve real-time updates');
       }
+    } else {
+      if (kDebugMode) {
+        print('WARNING: Chat $chatId not found in chat list!');
+      }
+    }
+
+    if (kDebugMode) {
+      print('Customer Cubit: Step 2 - Checking if chat has messages in map');
+      print('chatMessages contains chatId: ${chatMessages.containsKey(chatId)}');
+      print('chatMessages keys: ${chatMessages.keys.toList()}');
     }
 
     // Update messages in chatMessages map if they exist
@@ -1972,14 +2002,42 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
       }
     }
 
+    if (kDebugMode) {
+      print('Customer Cubit: Step 3 - Updating last seen message ID');
+    }
+    
     // Update last seen message ID to the latest in this chat
     if (chatMessages.containsKey(chatId) && chatMessages[chatId]!.isNotEmpty) {
       final latestMessage = chatMessages[chatId]!.last;
       lastSeenMessageId[chatId] = latestMessage.id;
+      if (kDebugMode) {
+        print('Updated lastSeenMessageId for chat $chatId');
+      }
+    }
+
+    if (kDebugMode) {
+      print('Customer Cubit: Step 4 - ABOUT TO CALL BACKEND API');
+      print('  This is the CRITICAL step that must happen!');
     }
 
     // Send read status to server
-    _chatService.markMessagesAsRead(chatId, messageIds);
+    if (kDebugMode) {
+      print('=== Customer Cubit: Calling ChatService.markMessagesAsRead ===');
+      print('  Chat ID: $chatId');
+      print('  Message IDs: $messageIds');
+      print('  Message count: ${messageIds.length}');
+    }
+    
+    try {
+      _chatService.markMessagesAsRead(chatId, messageIds);
+      if (kDebugMode) {
+        print('Customer Cubit: ChatService.markMessagesAsRead called successfully');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('ERROR: Failed to call ChatService.markMessagesAsRead: $e');
+      }
+    }
   }
 
   void markMessagesAsDelivered(String chatId, List<String> messageIds) {
