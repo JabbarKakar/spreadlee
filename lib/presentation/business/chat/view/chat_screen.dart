@@ -335,6 +335,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
   // New properties for typing indicators and online status
   Timer? _typingTimer;
   Timer? _cleanupTimer;
+  Timer? _socketHealthCheckTimer; // ✅ NEW: Periodic socket health check
 
   // Track unread messages for proper read status handling
   final Set<String> _unreadMessageIds = <String>{};
@@ -348,6 +349,9 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
   @override
   void initState() {
     super.initState();
+
+    // Add observer for app lifecycle changes (screen lock/unlock)
+    WidgetsBinding.instance.addObserver(this);
 
     // Add scroll listener for read status updates
     _scrollController.addListener(_onScrollUpdate);
@@ -364,6 +368,13 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
         } catch (e) {
           // Provider might be disposed, ignore
         }
+      }
+    });
+
+    // ✅ NEW: Periodic socket health check every 30 seconds
+    _socketHealthCheckTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) {
+        _checkSocketHealth();
       }
     });
 
@@ -619,9 +630,199 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+    debugPrint("Checking the socket");
     if (state == AppLifecycleState.resumed) {
+      if (kDebugMode) {
+        print('=== ChatScreen: App Resumed ===');
+        print('Attempting to reconnect socket...');
+      }
+      
+      // Reconnect socket when app resumes from background/locked screen
+      _reconnectSocketAfterResume();
+      
       // App became active, force check visible messages
       _forceCheckVisibleMessages();
+    } else if (state == AppLifecycleState.paused) {
+      if (kDebugMode) {
+        print('=== ChatScreen: App Paused/Screen Locked ===');
+      }
+      // Leave chat room to optimize battery and prevent unnecessary updates
+      try {
+        widget.chatProvider.leaveChatRoom(widget.chatId);
+        if (kDebugMode) {
+          print('ChatScreen: Left chat room: ${widget.chatId}');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('ChatScreen: Error leaving chat room: $e');
+        }
+      }
+    }
+  }
+  
+  /// Check socket health periodically and reconnect if needed
+  Future<void> _checkSocketHealth() async {
+    if (!mounted) return;
+    
+    try {
+      final chatService = Provider.of<ChatService>(context, listen: false);
+      
+      // Check if socket is connected
+      if (!chatService.socket.connected) {
+        if (kDebugMode) {
+          print('=== Business ChatScreen: Socket Health Check - DISCONNECTED ===');
+          print('Attempting automatic reconnection...');
+        }
+        
+        // Attempt reconnection
+        await _reconnectSocketAfterResume();
+      } else {
+        // Socket is connected, optionally verify we're still in the chat room
+        if (kDebugMode) {
+          print('Business ChatScreen: Socket Health Check - OK (connected)');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Business ChatScreen: Error in socket health check: $e');
+      }
+    }
+  }
+  
+  /// Reconnect socket after app resumes from background or screen unlock
+  Future<void> _reconnectSocketAfterResume() async {
+    if (!mounted) return;
+    
+    try {
+      final chatService = Provider.of<ChatService>(context, listen: false);
+      
+      if (kDebugMode) {
+        print('=== Business ChatScreen: Reconnection Start ===');
+        print('Socket connected: ${chatService.socket.connected}');
+      }
+      
+      // Wait briefly for socket to stabilize after resume
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      if (!mounted) return;
+      
+      // ✅ CRITICAL: Manually reconnect socket if disconnected
+      if (!chatService.socket.connected) {
+        if (kDebugMode) {
+          print('Business ChatScreen: Socket disconnected, manually reconnecting...');
+        }
+        
+        try {
+          chatService.socket.connect();
+          if (kDebugMode) {
+            print('Business ChatScreen: Socket.connect() called');
+          }
+          
+          // Wait for connection to establish
+          int connectAttempts = 0;
+          while (!chatService.socket.connected && connectAttempts < 20) {
+            await Future.delayed(const Duration(milliseconds: 250));
+            connectAttempts++;
+            if (kDebugMode && connectAttempts % 4 == 0) {
+              print('Business ChatScreen: Waiting for socket connection... (${connectAttempts * 250}ms)');
+            }
+          }
+          
+          if (kDebugMode) {
+            print('Business ChatScreen: Socket connected: ${chatService.socket.connected}');
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('Business ChatScreen: Error calling socket.connect(): $e');
+          }
+        }
+      }
+      
+      // Retry mechanism similar to customer chat
+      bool ready = false;
+      Exception? lastError;
+      for (int attempt = 0; attempt < 10; attempt++) {
+        try {
+          if (kDebugMode) {
+            print('Business ChatScreen: waitForSocketReady attempt ${attempt + 1}');
+          }
+          await chatService.waitForSocketReady();
+          ready = true;
+          break;
+        } catch (e) {
+          lastError = e is Exception ? e : Exception(e.toString());
+          if (kDebugMode) {
+            print('Business ChatScreen: waitForSocketReady attempt ${attempt + 1} failed: $e');
+          }
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
+      }
+      
+      if (!ready) {
+        if (kDebugMode) {
+          print('Business ChatScreen: Socket did not become ready: $lastError');
+        }
+        // Try to initialize anyway
+        try {
+          widget.chatProvider.initialize();
+        } catch (e) {
+          if (kDebugMode) {
+            print('Business ChatScreen: Error initializing provider: $e');
+          }
+        }
+        return;
+      }
+      
+      if (kDebugMode) {
+        print('Business ChatScreen: Socket ready after resume');
+        print('Socket connected: ${chatService.socket.connected}');
+      }
+      
+      // Reinitialize the provider to set up listeners again
+      if (mounted) {
+        try {
+          widget.chatProvider.initialize();
+          if (kDebugMode) {
+            print('Business ChatScreen: Provider reinitialized');
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('Business ChatScreen: Error reinitializing provider: $e');
+          }
+        }
+      }
+      
+      // Rejoin the current chat room
+      if (mounted) {
+        widget.chatProvider.joinChatRoom(widget.chatId);
+        
+        if (kDebugMode) {
+          print('Business ChatScreen: Rejoined chat room: ${widget.chatId}');
+        }
+        
+        // Force UI update via provider to show any missed messages
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (mounted) {
+          try {
+            widget.chatProvider.forceUIUpdate();
+            if (kDebugMode) {
+              print('Business ChatScreen: Forced UI update after reconnection');
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              print('Business ChatScreen: Error forcing UI update: $e');
+            }
+          }
+        }
+        
+        if (kDebugMode) {
+          print('=== Business ChatScreen: Reconnection Complete ===');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Business ChatScreen: Error reconnecting socket: $e');
+      }
     }
   }
 
@@ -1068,6 +1269,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
     _uiUpdateDebounceTimer?.cancel();
     _typingTimer?.cancel();
     _cleanupTimer?.cancel();
+    _socketHealthCheckTimer?.cancel(); // ✅ NEW: Cancel socket health check timer
     _markAsReadTimer?.cancel(); // Add cleanup for mark as read timer
     _resetProcessingFlagTimer
         ?.cancel(); // Add cleanup for processing flag timer

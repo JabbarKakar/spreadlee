@@ -340,6 +340,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
   Timer? _typingTimer;
   Timer? _cleanupTimer;
   Timer? _periodicCheckTimer;
+  Timer? _socketHealthCheckTimer; // ✅ NEW: Periodic socket health check
 
   // Track unread messages for proper read status handling
   final Set<String> _unreadMessageIds = <String>{};
@@ -376,6 +377,13 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
     //   }
     // });
 
+    // ✅ NEW: Periodic socket health check every 30 seconds
+    _socketHealthCheckTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) {
+        _checkSocketHealth();
+      }
+    });
+
     // Listen to provider changes to update message list for receiver
     widget.chatProvider.addListener(_onProviderUpdate);
 
@@ -391,44 +399,195 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-
+    
     if (state == AppLifecycleState.resumed) {
-      // ✅ NEW: Reinitialize socket and rejoin chat room on resume after lock
-      if (mounted) {
+      if (kDebugMode) {
+        print('=== Customer ChatScreen: App Resumed ===');
+        print('Attempting to reconnect socket...');
+      }
+      
+      // Reconnect socket when app resumes from background/locked screen
+      _reconnectSocketAfterResume();
+    } else if (state == AppLifecycleState.paused) {
+      if (kDebugMode) {
+        print('=== Customer ChatScreen: App Paused/Screen Locked ===');
+      }
+      // Leave chat room to optimize battery and prevent unnecessary updates
+      try {
+        widget.chatProvider.leaveChatRoom(widget.chatId);
+        if (kDebugMode) {
+          print('Customer ChatScreen: Left chat room: ${widget.chatId}');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('Customer ChatScreen: Error leaving chat room: $e');
+        }
+      }
+    }
+  }
+  
+  /// Check socket health periodically and reconnect if needed
+  Future<void> _checkSocketHealth() async {
+    if (!mounted) return;
+    
+    try {
+      final chatService = Provider.of<ChatService>(context, listen: false);
+      
+      // Check if socket is connected
+      if (!chatService.socket.connected) {
+        if (kDebugMode) {
+          print('=== Customer ChatScreen: Socket Health Check - DISCONNECTED ===');
+          print('Attempting automatic reconnection...');
+        }
+        
+        // Attempt reconnection
+        await _reconnectSocketAfterResume();
+      } else {
+        // Socket is connected, optionally verify we're still in the chat room
+        if (kDebugMode) {
+          print('Customer ChatScreen: Socket Health Check - OK (connected)');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Customer ChatScreen: Error in socket health check: $e');
+      }
+    }
+  }
+  
+  /// Reconnect socket after app resumes from background or screen unlock
+  Future<void> _reconnectSocketAfterResume() async {
+    if (!mounted) return;
+    
+    try {
+      final chatService = Provider.of<ChatService>(context, listen: false);
+      
+      if (kDebugMode) {
+        print('=== Customer ChatScreen: Reconnection Start ===');
+        print('Socket connected: ${chatService.socket.connected}');
+      }
+      
+      // Wait briefly for socket to stabilize after resume
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      if (!mounted) return;
+      
+      // ✅ CRITICAL: Manually reconnect socket if disconnected
+      if (!chatService.socket.connected) {
+        if (kDebugMode) {
+          print('Customer ChatScreen: Socket disconnected, manually reconnecting...');
+        }
+        
         try {
-          final chatProvider = ChatProviderInherited.of(context);
-          final chatService = Provider.of<ChatService>(context, listen: false);
-
-          // Wait briefly for socket to stabilize post-resume
-          Future.delayed(const Duration(milliseconds: 500), () async {
-            if (mounted) {
-              // Ensure socket is ready and rejoin room
-              await chatService.waitForSocketReady();
-              chatProvider.joinChatRoom(widget.chatId);
-
-              // Optional: Force a lightweight refresh of recent messages if needed
-              // (Avoid full fetch to prevent unnecessary network calls)
-              if (kDebugMode) {
-                print('=== ChatScreen: Resumed from lock - rejoined room ${widget.chatId} ===');
-              }
-
-              // Trigger UI update via provider
-              chatProvider.forceUIUpdate();
+          chatService.socket.connect();
+          if (kDebugMode) {
+            print('Customer ChatScreen: Socket.connect() called');
+          }
+          
+          // Wait for connection to establish
+          int connectAttempts = 0;
+          while (!chatService.socket.connected && connectAttempts < 20) {
+            await Future.delayed(const Duration(milliseconds: 250));
+            connectAttempts++;
+            if (kDebugMode && connectAttempts % 4 == 0) {
+              print('Customer ChatScreen: Waiting for socket connection... (${connectAttempts * 250}ms)');
             }
-          });
+          }
+          
+          if (kDebugMode) {
+            print('Customer ChatScreen: Socket connected: ${chatService.socket.connected}');
+          }
         } catch (e) {
           if (kDebugMode) {
-            print('Error resuming socket on unlock: $e');
+            print('Customer ChatScreen: Error calling socket.connect(): $e');
           }
         }
       }
-    } else if (state == AppLifecycleState.paused) {
-      // Optional: Leave room or pause listeners to optimize battery
-      // (ChatProvider handles this in dispose, but explicit here for clarity)
-      final chatProvider = ChatProviderInherited.of(context);
-      chatProvider.leaveChatRoom(widget.chatId);
+      
+      // Retry mechanism similar to initial setup
+      bool ready = false;
+      Exception? lastError;
+      for (int attempt = 0; attempt < 10; attempt++) {
+        try {
+          if (kDebugMode) {
+            print('Customer ChatScreen: waitForSocketReady attempt ${attempt + 1}');
+          }
+          await chatService.waitForSocketReady();
+          ready = true;
+          break;
+        } catch (e) {
+          lastError = e is Exception ? e : Exception(e.toString());
+          if (kDebugMode) {
+            print('Customer ChatScreen: waitForSocketReady attempt ${attempt + 1} failed: $e');
+          }
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
+      }
+      
+      if (!ready) {
+        if (kDebugMode) {
+          print('Customer ChatScreen: Socket did not become ready: $lastError');
+        }
+        // Try to initialize anyway
+        try {
+          widget.chatProvider.initialize();
+        } catch (e) {
+          if (kDebugMode) {
+            print('Customer ChatScreen: Error initializing provider: $e');
+          }
+        }
+        return;
+      }
+      
       if (kDebugMode) {
-        print('=== ChatScreen: Paused (locked) - left room ${widget.chatId} ===');
+        print('Customer ChatScreen: Socket ready after resume');
+        print('Socket connected: ${chatService.socket.connected}');
+      }
+      
+      // Reinitialize the provider to set up listeners again
+      if (mounted) {
+        try {
+          widget.chatProvider.initialize();
+          if (kDebugMode) {
+            print('Customer ChatScreen: Provider reinitialized');
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('Customer ChatScreen: Error reinitializing provider: $e');
+          }
+        }
+      }
+      
+      // Rejoin the current chat room
+      if (mounted) {
+        widget.chatProvider.joinChatRoom(widget.chatId);
+        
+        if (kDebugMode) {
+          print('Customer ChatScreen: Rejoined chat room: ${widget.chatId}');
+        }
+        
+        // Force UI update via provider to show any missed messages
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (mounted) {
+          try {
+            widget.chatProvider.forceUIUpdate();
+            if (kDebugMode) {
+              print('Customer ChatScreen: Forced UI update after reconnection');
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              print('Customer ChatScreen: Error forcing UI update: $e');
+            }
+          }
+        }
+        
+        if (kDebugMode) {
+          print('=== Customer ChatScreen: Reconnection Complete ===');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Customer ChatScreen: Error reconnecting socket: $e');
       }
     }
   }
@@ -1019,6 +1178,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
     _typingTimer?.cancel();
     _cleanupTimer?.cancel();
     _periodicCheckTimer?.cancel();
+    _socketHealthCheckTimer?.cancel(); // ✅ NEW: Cancel socket health check timer
     _markAsReadTimer?.cancel();
     _resetProcessingFlagTimer?.cancel();
     _scrollController.removeListener(_onScrollUpdate);

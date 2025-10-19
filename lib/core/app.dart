@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:spreadlee/core/languages_manager.dart';
@@ -67,6 +68,57 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
     super.dispose();
   }
+  
+  /// Reconnect ChatService socket when app resumes from background/screen lock
+  void _reconnectChatService() {
+    if (!instance.isRegistered<ChatService>()) return;
+    
+    try {
+      final chatService = instance<ChatService>();
+      
+      if (kDebugMode) {
+        print('=== App Level: Reconnecting ChatService ===');
+        print('Socket connected: ${chatService.socket.connected}');
+      }
+      
+      // If socket is disconnected, manually reconnect
+      if (!chatService.socket.connected) {
+        if (kDebugMode) {
+          print('App Level: ChatService socket disconnected, reconnecting...');
+        }
+        
+        // Give system time to stabilize, then reconnect
+        Future.delayed(const Duration(milliseconds: 500), () {
+          try {
+            chatService.socket.connect();
+            
+            if (kDebugMode) {
+              print('App Level: ChatService socket.connect() called');
+            }
+            
+            // Wait for connection to establish
+            Future.delayed(const Duration(milliseconds: 1000), () {
+              if (kDebugMode) {
+                print('App Level: ChatService socket connected: ${chatService.socket.connected}');
+              }
+            });
+          } catch (e) {
+            if (kDebugMode) {
+              print('App Level: Error reconnecting ChatService: $e');
+            }
+          }
+        });
+      } else {
+        if (kDebugMode) {
+          print('App Level: ChatService socket already connected');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('App Level: Error in _reconnectChatService: $e');
+      }
+    }
+  }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -98,6 +150,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         // App is back in foreground - reconnect and mark as online
         _lifecycleManager.handleAppForegrounded();
         _lifecycleManager.handleAppActive();
+        
+        // ✅ CRITICAL: Reconnect ChatService socket when app resumes
+        _reconnectChatService();
         break;
 
       case AppLifecycleState.hidden:
