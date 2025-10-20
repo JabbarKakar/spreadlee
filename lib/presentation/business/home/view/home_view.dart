@@ -80,7 +80,15 @@ class _HomeViewBusinessState extends State<HomeViewBusiness>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
- context.read<ChatBusinessCubit>().getChats();
+    
+    // ✅ CLEANUP: Clear any open chat when returning to chat list
+    final cubit = context.read<ChatBusinessCubit>();
+    if (kDebugMode) {
+      print('=== Business HomeView: Clearing open chat (was: ${cubit.currentlyOpenChatId}) ===');
+    }
+    cubit.setCurrentlyOpenChat(null);
+    
+    cubit.getChats();
     // Initialize popup services with context
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -111,6 +119,19 @@ class _HomeViewBusinessState extends State<HomeViewBusiness>
 
     // Initialize chat list manager service and then load chats
     _initializeAndLoadChats();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // ✅ CLEANUP: Clear any open chat when returning to home view
+    final cubit = context.read<ChatBusinessCubit>();
+    if (kDebugMode) {
+      print('=== Business HomeView: didChangeDependencies called ===');
+      print('Clearing open chat (was: ${cubit.currentlyOpenChatId})');
+    }
+    cubit.setCurrentlyOpenChat(null);
   }
 
   @override
@@ -196,8 +217,11 @@ class _HomeViewBusinessState extends State<HomeViewBusiness>
         // Note: UserStatusProvider.notifyListeners has been deprecated
         // The new presence system handles notifications automatically
 
-        // Update unread count when messages are seen
-        _updateUnreadCount(event.data);
+        // ✅ REMOVED: Unread count logic - let the cubit handle this
+        if (kDebugMode) {
+          print('=== Business HomeView: Received messageSeenUpdate ===');
+          print('Letting cubit handle unread count updates');
+        }
       }
     });
 
@@ -327,13 +351,6 @@ class _HomeViewBusinessState extends State<HomeViewBusiness>
     }
   }
 
-  void _updateUnreadCount(Map<String, dynamic> data) {
-    final chatId = data['chatId'] ?? data['chat_id'];
-    if (chatId != null) {
-      // Update the chat list to reflect new unread count
-      _refreshChatList();
-    }
-  }
 
   void _handleNewMessage(Map<String, dynamic> data) {
     final chatId = data['chat_id'] ?? data['chatId'];

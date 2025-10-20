@@ -1480,7 +1480,8 @@ class ChatBusinessCubit extends Cubit<ChatBusinessState> {
     final updatedChatList = List<Chats>.from(chat);
     final chatIndex = updatedChatList.indexWhere((c) => c.sId == chatId);
     final isFromOtherUser = message.messageCreator?.id != Constants.userId;
-    final isChatOpen = currentlyOpenChatId == chatId;
+    // ✅ FIX: Only consider chat open if currentlyOpenChatId is not null and matches
+    final isChatOpen = currentlyOpenChatId != null && currentlyOpenChatId == chatId;
 
     if (kDebugMode) {
       print('Chat index in updatedChatList: \\$chatIndex');
@@ -1493,19 +1494,18 @@ class ChatBusinessCubit extends Cubit<ChatBusinessState> {
       // Update last message and unread count
       final oldChat = updatedChatList[chatIndex];
       int newUnread = oldChat.chatNotSeenMessages ?? 0;
-      if (isFromOtherUser && !isChatOpen && chatId != currentlyOpenChatId) {
+      if (isFromOtherUser && !isChatOpen) {
         // Increment unread count for new message from other user when chat is not open
-        // and it's not the currently open chat
         newUnread++;
         if (kDebugMode) {
           print('=== Business Cubit: Incrementing unread count for chat $chatId ===');
           print('Current open chat: $currentlyOpenChatId');
           print('New unread count: $newUnread');
         }
-      } else if (isFromOtherUser && (isChatOpen || chatId == currentlyOpenChatId)) {
+      } else if (isFromOtherUser && isChatOpen) {
         if (kDebugMode) {
           print('=== Business Cubit: NOT incrementing unread count for chat $chatId ===');
-          print('Reason: isChatOpen=$isChatOpen, chatId==currentlyOpenChatId=${chatId == currentlyOpenChatId}');
+          print('Reason: isChatOpen=$isChatOpen (chat is currently open)');
           print('Current open chat: $currentlyOpenChatId');
         }
       }
@@ -2015,6 +2015,10 @@ class ChatBusinessCubit extends Cubit<ChatBusinessState> {
     if (kDebugMode) {
       print('Business Cubit: ChatService.markMessagesAsRead called successfully');
     }
+    
+    // ✅ RESET: Reset unread count to zero when messages are marked as read
+    _resetUnreadCountForOpenChat(chatId);
+    
     // Update last seen message ID to the latest in this chat
     if (chatMessages.containsKey(chatId) && chatMessages[chatId]!.isNotEmpty) {
       final latestMessage = chatMessages[chatId]!.last;
@@ -3209,11 +3213,6 @@ class ChatBusinessCubit extends Cubit<ChatBusinessState> {
     }
     
     currentlyOpenChatId = chatId;
-    
-    // Auto-reset unread count for the currently open chat
-    if (chatId != null) {
-      _resetUnreadCountForOpenChat(chatId);
-    }
   }
 
   /// Reset unread count to zero for a specific chat (only if it's currently open)
@@ -3250,6 +3249,11 @@ class ChatBusinessCubit extends Cubit<ChatBusinessState> {
         print('=== Business Cubit: Chat not found in list: $chatId ===');
       }
     }
+  }
+
+  /// Public method to reset unread count for the currently open chat
+  void resetUnreadCountForOpenChat(String chatId) {
+    _resetUnreadCountForOpenChat(chatId);
   }
 
   // Add getter for typing state

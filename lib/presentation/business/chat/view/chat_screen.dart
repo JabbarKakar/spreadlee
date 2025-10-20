@@ -97,10 +97,18 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   // Enhanced message status handler
   final MessageStatusHandler _statusHandler = MessageStatusHandler();
+  
+  // Store cubit reference to avoid context issues in dispose
+  late final ChatBusinessCubit _cubit;
+  late final ChatService _chatService;
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize cubit reference to avoid context issues in dispose
+    _cubit = context.read<ChatBusinessCubit>();
+    _chatService = Provider.of<ChatService>(context, listen: false);
 
     // Initialize animation controllers
     _chatProvider = ChatProvider(
@@ -252,22 +260,35 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       print('Chat ID: ${widget.chatId}');
     }
 
-    // Set currently open chat in cubit (this will auto-reset unread count)
+    // Set currently open chat in cubit
     context.read<ChatBusinessCubit>().setCurrentlyOpenChat(widget.chatId);
     
     // Also set in ChatService for socket events
     final chatService = Provider.of<ChatService>(context, listen: false);
     chatService.setCurrentOpenChat(widget.chatId);
+    
+    // ✅ EXPLICIT: Reset unread count only when chat screen is actually opened
+    _resetUnreadCountForOpenChat();
+  }
+
+  /// Reset unread count for the currently open chat
+  void _resetUnreadCountForOpenChat() {
+    if (kDebugMode) {
+      print('=== ChatScreen: Resetting unread count for open chat ===');
+      print('Chat ID: ${widget.chatId}');
+    }
+
+    // Call the cubit method to reset unread count
+    _cubit.resetUnreadCountForOpenChat(widget.chatId);
   }
 
   @override
   void dispose() {
     // Clear currently open chat when disposing
-    context.read<ChatBusinessCubit>().setCurrentlyOpenChat(null);
+    _cubit.setCurrentlyOpenChat(null);
     
     // Also clear in ChatService
-    final chatService = Provider.of<ChatService>(context, listen: false);
-    chatService.clearCurrentOpenChat();
+    _chatService.clearCurrentOpenChat();
     
     _chatProvider.removeListener(_onChatProviderUpdate);
     _statusHandler.dispose();

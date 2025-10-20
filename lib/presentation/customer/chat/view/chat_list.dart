@@ -60,8 +60,15 @@ class _ChatListCustomerState extends State<ChatListCustomer>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-  final cubit = context.read<ChatCustomerCubit>();
-                cubit.getCustomerChats();
+    
+    // ✅ CLEANUP: Clear any open chat when returning to chat list
+    final cubit = context.read<ChatCustomerCubit>();
+    if (kDebugMode) {
+      print('=== Customer ChatList: Clearing open chat (was: ${cubit.currentlyOpenChatId}) ===');
+    }
+    cubit.setCurrentlyOpenChat(null);
+    
+    cubit.getCustomerChats();
     // Initialize popup services with context
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -104,10 +111,17 @@ class _ChatListCustomerState extends State<ChatListCustomer>
   void didChangeDependencies() {
     super.didChangeDependencies();
 
+    // ✅ CLEANUP: Clear any open chat when returning to chat list
+    final cubit = context.read<ChatCustomerCubit>();
+    if (kDebugMode) {
+      print('=== Customer Chat List: didChangeDependencies called ===');
+      print('Clearing open chat (was: ${cubit.currentlyOpenChatId})');
+    }
+    cubit.setCurrentlyOpenChat(null);
+
     // Refresh chat list when returning from chat screen to ensure latest data
     // This matches the business behavior where chat list refreshes on navigation back
     if (kDebugMode) {
-      print('=== Customer Chat List: didChangeDependencies called ===');
       print('Refreshing chat list to ensure latest data after navigation');
     }
 
@@ -171,8 +185,11 @@ class _ChatListCustomerState extends State<ChatListCustomer>
         // Note: UserStatusProvider.notifyListeners has been deprecated
         // The new presence system handles notifications automatically
 
-        // Update unread count when messages are seen
-        _updateUnreadCount(event.data);
+        // ✅ REMOVED: Unread count logic - let the cubit handle this
+        if (kDebugMode) {
+          print('=== Customer Chat List: Received messageSeenUpdate ===');
+          print('Letting cubit handle unread count updates');
+        }
       }
     });
 
@@ -326,19 +343,6 @@ class _ChatListCustomerState extends State<ChatListCustomer>
     }
   }
 
-  void _updateUnreadCount(Map<String, dynamic> data) {
-    final chatId = data['chatId'] ?? data['chat_id'];
-    if (chatId != null) {
-      // Don't refresh chat list automatically - let the cubit handle real-time updates
-      // This prevents the unread counter from being overridden by server data
-      if (kDebugMode) {
-        print(
-            '=== Customer Chat List: Received messageSeenUpdate for chat $chatId ===');
-        print(
-            'Not refreshing chat list to preserve real-time unread counter updates');
-      }
-    }
-  }
 
   void _handleNewMessage(Map<String, dynamic> data) {
     final chatId = data['chat_id'] ?? data['chatId'];
