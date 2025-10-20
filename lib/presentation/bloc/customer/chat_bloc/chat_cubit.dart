@@ -1271,7 +1271,54 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
   }
 
   void setCurrentlyOpenChat(String? chatId) {
+    if (kDebugMode) {
+      print('=== Customer Cubit: Setting currently open chat ===');
+      print('Chat ID: $chatId');
+      print('Previous open chat: $currentlyOpenChatId');
+    }
+    
     currentlyOpenChatId = chatId;
+    
+    // Auto-reset unread count for the currently open chat
+    if (chatId != null) {
+      _resetUnreadCountForOpenChat(chatId);
+    }
+  }
+
+  /// Reset unread count to zero for a specific chat (only if it's currently open)
+  void _resetUnreadCountForOpenChat(String chatId) {
+    // Validate that this is the currently open chat
+    if (chatId != currentlyOpenChatId) {
+      if (kDebugMode) {
+        print('=== Customer Cubit: Chat ID mismatch - not resetting unread count ===');
+        print('Requested chat: $chatId');
+        print('Currently open chat: $currentlyOpenChatId');
+      }
+      return;
+    }
+
+    if (kDebugMode) {
+      print('=== Customer Cubit: Resetting unread count for open chat ===');
+      print('Chat ID: $chatId');
+    }
+
+    // Update chat list unread count to 0
+    final chatIndex = chat.indexWhere((c) => c.sId == chatId);
+    if (chatIndex != -1) {
+      final updatedChat = chat[chatIndex].copyWith(
+        chatNotSeenMessages: 0,
+      );
+      chat[chatIndex] = updatedChat;
+      emit(ChatCustomerSuccessState(List<Chats>.from(chat)));
+      
+      if (kDebugMode) {
+        print('=== Customer Cubit: Unread count reset to 0 for chat $chatId ===');
+      }
+    } else {
+      if (kDebugMode) {
+        print('=== Customer Cubit: Chat not found in list: $chatId ===');
+      }
+    }
   }
 
   void _updateChatList(String chatId, ChatMessage message) {
@@ -1299,9 +1346,21 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
       // Update last message and unread count
       final oldChat = updatedChatList[chatIndex];
       int newUnread = oldChat.chatNotSeenMessages ?? 0;
-      if (isFromOtherUser && !isChatOpen) {
+      if (isFromOtherUser && !isChatOpen && chatId != currentlyOpenChatId) {
         // Increment unread count for new message from other user when chat is not open
+        // and it's not the currently open chat
         newUnread++;
+        if (kDebugMode) {
+          print('=== Customer Cubit: Incrementing unread count for chat $chatId ===');
+          print('Current open chat: $currentlyOpenChatId');
+          print('New unread count: $newUnread');
+        }
+      } else if (isFromOtherUser && (isChatOpen || chatId == currentlyOpenChatId)) {
+        if (kDebugMode) {
+          print('=== Customer Cubit: NOT incrementing unread count for chat $chatId ===');
+          print('Reason: isChatOpen=$isChatOpen, chatId==currentlyOpenChatId=${chatId == currentlyOpenChatId}');
+          print('Current open chat: $currentlyOpenChatId');
+        }
       }
       updatedChat = oldChat.copyWith(
         chatLastMessage: ChatLastMessage(
@@ -1341,7 +1400,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
         participants: [message.messageCreator?.id ?? ''],
         createdAt: DateTime.now().toIso8601String(),
         updatedAt: DateTime.now().toIso8601String(),
-        chatNotSeenMessages: isFromOtherUser && !isChatOpen ? 1 : 0,
+        chatNotSeenMessages: isFromOtherUser && !isChatOpen && chatId != currentlyOpenChatId ? 1 : 0,
       );
     }
 
