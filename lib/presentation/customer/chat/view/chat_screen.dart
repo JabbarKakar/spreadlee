@@ -101,6 +101,10 @@ class _ChatScreenCustomerState extends State<ChatScreenCustomer>
     super.initState();
     final cubit = context.read<ChatCustomerCubit>();
     cubit.setCurrentlyOpenChat(widget.chatId);
+    
+    // Also set in ChatService for socket events
+    final chatService = Provider.of<ChatService>(context, listen: false);
+    chatService.setCurrentOpenChat(widget.chatId);
     _chatProvider = ChatProvider(
       chatId: widget.chatId,
       userId: widget.userId,
@@ -252,6 +256,11 @@ class _ChatScreenCustomerState extends State<ChatScreenCustomer>
   void dispose() {
     final cubit = context.read<ChatCustomerCubit>();
     cubit.setCurrentlyOpenChat(null);
+    
+    // Also clear in ChatService
+    final chatService = Provider.of<ChatService>(context, listen: false);
+    chatService.clearCurrentOpenChat();
+    
     _chatProvider.removeListener(_onChatProviderUpdate);
     _statusHandler.dispose();
     super.dispose();

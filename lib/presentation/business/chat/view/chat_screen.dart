@@ -169,6 +169,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
       // Add listener for real-time updates from ChatProvider
       _chatProvider.addListener(_onChatProviderUpdate);
+      
+      // Set currently open chat and reset unread count
+      _setCurrentlyOpenChat();
     });
   }
 
@@ -242,8 +245,30 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     // already calls notifyListeners() which will trigger the UI update via _onChatProviderUpdate()
   }
 
+  /// Set currently open chat and reset unread count
+  void _setCurrentlyOpenChat() {
+    if (kDebugMode) {
+      print('=== ChatScreen: Setting currently open chat ===');
+      print('Chat ID: ${widget.chatId}');
+    }
+
+    // Set currently open chat in cubit (this will auto-reset unread count)
+    context.read<ChatBusinessCubit>().setCurrentlyOpenChat(widget.chatId);
+    
+    // Also set in ChatService for socket events
+    final chatService = Provider.of<ChatService>(context, listen: false);
+    chatService.setCurrentOpenChat(widget.chatId);
+  }
+
   @override
   void dispose() {
+    // Clear currently open chat when disposing
+    context.read<ChatBusinessCubit>().setCurrentlyOpenChat(null);
+    
+    // Also clear in ChatService
+    final chatService = Provider.of<ChatService>(context, listen: false);
+    chatService.clearCurrentOpenChat();
+    
     _chatProvider.removeListener(_onChatProviderUpdate);
     _statusHandler.dispose();
     super.dispose();

@@ -74,8 +74,27 @@ class ChatService {
   // Track joined chat rooms
   final Set<String> _joinedChatRooms = {};
 
+  // Track currently open chat for auto-marking messages as read
+  String? _currentOpenChatId;
+
   // Flag to prevent multiple ACCESS_DENIED handling
   bool _isHandlingAccessDenied = false;
+
+  /// Set the currently open chat ID for auto-marking messages as read
+  void setCurrentOpenChat(String? chatId) {
+    _currentOpenChatId = chatId;
+    if (kDebugMode) {
+      print('ChatService: Current open chat set to: $chatId');
+    }
+  }
+
+  /// Clear the currently open chat ID
+  void clearCurrentOpenChat() {
+    if (kDebugMode) {
+      print('ChatService: Clearing current open chat (was: $_currentOpenChatId)');
+    }
+    _currentOpenChatId = null;
+  }
 
   // Move _initializeSocket logic to be called only once, or when baseUrl/token changes
   void initializeSocket() {
@@ -570,6 +589,31 @@ class ChatService {
           // Handle case where data is a List with the actual data at index 0
           final actualData = data is List ? data[0] : data;
           if (actualData is Map<String, dynamic>) {
+            // Auto-mark message as read if it's from the currently open chat
+            final chatId = actualData['chat_id']?.toString();
+            final messageId = actualData['_id']?.toString() ?? "";
+
+            // Only mark as read if:
+            // 1. This chat is currently open
+            // 2. Message has valid IDs
+            if (chatId != null && messageId.isNotEmpty && chatId == _currentOpenChatId) {
+              if (kDebugMode) {
+                print('=== Auto-marking message as read (chat is open) ===');
+                print('Chat ID: $chatId');
+                print('Message ID: $messageId');
+              }
+
+              // Mark this message as read immediately
+              markMessagesAsRead(chatId, [messageId]);
+
+            } else {
+              if (kDebugMode && chatId != null && messageId.isNotEmpty && chatId != _currentOpenChatId) {
+                print('=== Message NOT auto-marked as read (chat not open) ===');
+                print('Message chat: $chatId');
+                print('Current open chat: $_currentOpenChatId');
+              }
+            }
+
             if (kDebugMode) {
               print('ChatService: Calling message_sent callback');
               print(

@@ -1434,10 +1434,10 @@ class _HomeViewBusinessState extends State<HomeViewBusiness>
                             presenceProvider
                                     .getUserPresence(customerUserId ?? '') !=
                                 null) {
-                          print('=== Business Home Chat Item Status ===');
-                          print('Chat ID: ${chat.sId}');
-                          print('Customer User ID: $customerUserId');
-                          print('Is Online: $isOnline');
+                          // print('=== Business Home Chat Item Status ===');
+                          // print('Chat ID: ${chat.sId}');
+                          // print('Customer User ID: $customerUserId');
+                          // print('Is Online: $isOnline');
                         }
 
                         return _buildAnimatedChatItem(

@@ -35,10 +35,10 @@ class _OnlineStatusIndicatorState extends State<OnlineStatusIndicator> {
 
         // Only log in debug mode and reduce frequency
         if (kDebugMode && presence != null) {
-          print('=== OnlineStatusIndicator Debug ===');
-          print('Chat ID: ${widget.chatId}');
-          print('User ID: ${widget.userId}');
-          print('Is Online: $isOnline');
+          // print('=== OnlineStatusIndicator Debug ===');
+          // print('Chat ID: ${widget.chatId}');
+          // print('User ID: ${widget.userId}');
+          // print('Is Online: $isOnline');
         }
 
         return Row(
