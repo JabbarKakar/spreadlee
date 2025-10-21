@@ -1502,7 +1502,8 @@ class ChatBusinessCubit extends Cubit<ChatBusinessState> {
           print('Current open chat: $currentlyOpenChatId');
           print('New unread count: $newUnread');
         }
-      } else if (isFromOtherUser && isChatOpen) {
+      }
+      else if (isFromOtherUser && isChatOpen) {
         if (kDebugMode) {
           print('=== Business Cubit: NOT incrementing unread count for chat $chatId ===');
           print('Reason: isChatOpen=$isChatOpen (chat is currently open)');

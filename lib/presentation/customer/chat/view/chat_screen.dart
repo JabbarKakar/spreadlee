@@ -594,6 +594,22 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
           print('Customer ChatScreen: Rejoined chat room: ${widget.chatId}');
         }
         
+        // Fetch any missed messages from server
+        if (mounted) {
+          try {
+            final cubit = context.read<ChatCustomerCubit>();
+            await cubit.getMessages(widget.chatId, skip: 0, limit: 20);
+            
+            if (kDebugMode) {
+              print('Customer ChatScreen: Fetched missed messages after reconnection');
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              print('Customer ChatScreen: Error fetching missed messages: $e');
+            }
+          }
+        }
+        
         // Force UI update via provider to show any missed messages
         await Future.delayed(const Duration(milliseconds: 300));
         if (mounted) {
