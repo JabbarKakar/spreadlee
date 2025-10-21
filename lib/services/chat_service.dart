@@ -606,6 +606,9 @@ class ChatService {
                   'ChatService: Callback is null: ${_onMessageSentCallback == null}');
             }
             _onMessageSentCallback?.call(actualData);
+            if(_currentOpenChatId == chatId){
+              markMessagesAsRead(chatId.toString(), [messageId]);
+            }
             if (kDebugMode) {
               print('ChatService: message_sent callback called successfully');
             }
