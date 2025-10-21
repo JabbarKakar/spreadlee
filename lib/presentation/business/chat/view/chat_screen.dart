@@ -368,9 +368,9 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
   bool _isInitialized = false;
   bool _isTyping = false;
 
-  // Add to _ChatScreenContentState:
-  // Remove all pagination state variables from _ChatScreenContentState
-  // Remove: int _initialTotalCount, bool _initialPageLoaded, int _pageSize, int _currentSkip, bool _hasMore, bool _isLoadingMore, and any related variables
+  // Simple pagination variables
+  int _currentPage = 0;
+  bool _isLoadingMore = false;
 
   // Track previous message IDs to identify new messages
   final Set<String> _previousMessageIds = <String>{};
@@ -399,7 +399,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
     // Add observer for app lifecycle changes (screen lock/unlock)
     WidgetsBinding.instance.addObserver(this);
 
-    // Add scroll listener for read status updates
+    // Add scroll listener for read status updates and pagination
     _scrollController.addListener(_onScrollUpdate);
 
     // Load token asynchronously
@@ -494,7 +494,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
   }
 
   void _onScrollUpdate() {
-    if (!mounted || _isLoadingMessages) return; // Skip during pagination
+    if (!mounted || _isLoadingMessages || _isLoadingMore) return;
 
     final visibleMessageIds = _getVisibleMessageIds();
     final unreadVisibleIds = visibleMessageIds
@@ -515,12 +515,48 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
         // User is at the bottom, force check all visible messages
         _forceCheckVisibleMessages();
       }
+      
+      // Check if user scrolled to top (oldest messages) for pagination
+      final isAtTop = position.pixels >= position.maxScrollExtent;
+      if (isAtTop) {
+        _loadMoreMessages();
+      }
     }
   }
 
   // Add debouncing for mark as read calls
   Timer? _markAsReadTimer;
   final List<String> _pendingMarkAsReadIds = [];
+
+  /// Load more messages for pagination
+  Future<void> _loadMoreMessages() async {
+    if (_isLoadingMore) return;
+    
+    _isLoadingMore = true;
+    _currentPage++;
+    
+    if (kDebugMode) {
+      print('=== Loading More Messages ===');
+      print('Page: $_currentPage');
+      print('Skip: ${_currentPage * 20}');
+    }
+    
+    try {
+      final cubit = context.read<ChatBusinessCubit>();
+      await cubit.getMessages(
+        widget.chatId, 
+        skip: _currentPage * 20, 
+        limit: 20
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error loading more messages: $e');
+      }
+      _currentPage--; // Revert page on error
+    } finally {
+      _isLoadingMore = false;
+    }
+  }
 
   void _debouncedMarkAsRead(List<String> messageIds) {
     // ✅ DISABLED: Mark as read functionality removed
@@ -850,7 +886,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
         if (mounted) {
           try {
             final cubit = context.read<ChatBusinessCubit>();
-            await cubit.getMessages(widget.chatId, skip: 0, limit: 20);
+            await cubit.getMessages(widget.chatId);
             
             if (kDebugMode) {
               print('Business ChatScreen: Fetched missed messages after reconnection');
@@ -959,10 +995,12 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
               'DEBUG: Starting to fetch initial messages for chatId: ${widget.chatId} (attempt ${retryCount + 1})');
         }
 
-        // Reduce initial load size for faster loading
-        await chatCubit.getMessages(widget.chatId,
-            skip: 0,
-            limit: 10); // Reduced from 20 to 10 for faster initial load
+        // Reset pagination variables for initial load
+        _currentPage = 0;
+        _isLoadingMore = false;
+        
+        // Load initial messages with default pagination
+        await chatCubit.getMessages(widget.chatId);
         final state = chatCubit.state;
 
         if (state is ChatMessagesSuccessState &&
@@ -1942,7 +1980,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
                                   height: 10,
                                 ),
                                 controller: _scrollController,
-                                itemCount: messages.length,
+                                itemCount: messages.length + (_isLoadingMore ? 1 : 0),
                                 reverse: true,
                                 itemBuilder: (context, index) {
                                   // Show loading indicator at the top (oldest messages) when loading more messages

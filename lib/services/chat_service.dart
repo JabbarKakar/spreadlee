@@ -2323,18 +2323,6 @@ class ChatService {
 
     // Track if acknowledgment was received
     bool ackReceived = false;
-    
-    // Set timeout to detect if backend doesn't respond
-    Timer(const Duration(seconds: 5), () {
-      if (!ackReceived && kDebugMode) {
-        print('❌❌❌ CRITICAL ERROR: Backend did not acknowledge mark_messages_read after 5 seconds!');
-        print('❌ This means the backend is NOT processing the request!');
-        print('❌ Chat ID: $chatId');
-        print('❌ Message IDs count: ${messageIds.length}');
-        print('❌ ACTION REQUIRED: Check backend logs for errors!');
-        print('❌ Backend socket event handler may be missing or encountering errors!');
-      }
-    });
 
     socket.emitWithAck('mark_messages_read', data, ack: (response) {
       ackReceived = true;

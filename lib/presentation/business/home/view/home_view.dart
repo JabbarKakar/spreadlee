@@ -1507,4 +1507,5 @@ class _HomeViewBusinessState extends State<HomeViewBusiness>
       }
     }
   }
+
 }

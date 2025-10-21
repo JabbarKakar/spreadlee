@@ -377,6 +377,11 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
   // Flag to prevent duplicate processing
   bool _isProcessingBlocUpdate = false;
   Timer? _resetProcessingFlagTimer;
+  
+  // Simple pagination variables
+  int _currentPage = 0;
+  bool _isLoadingMore = false;
+
 
   @override
   void initState() {
@@ -598,7 +603,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
         if (mounted) {
           try {
             final cubit = context.read<ChatCustomerCubit>();
-            await cubit.getMessages(widget.chatId, skip: 0, limit: 20);
+            await cubit.getMessages(widget.chatId);
             
             if (kDebugMode) {
               print('Customer ChatScreen: Fetched missed messages after reconnection');
@@ -666,19 +671,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
   }
 
   void _onScrollUpdate() {
-    if (!mounted || _isLoadingMessages) return; // Skip during pagination
-
-    // Disable automatic read marking on scroll to prevent unread counter from clearing
-    // Only mark messages as read when user explicitly views them or sends a message
-    // final visibleMessageIds = _getVisibleMessageIds();
-    // final unreadVisibleIds = visibleMessageIds
-    //     .where((id) =>
-    //         _unreadMessageIds.contains(id) && !_markedAsReadIds.contains(id))
-    //     .toList();
-
-    // if (unreadVisibleIds.isNotEmpty) {
-    //   _debouncedMarkAsRead(unreadVisibleIds);
-    // }
+    if (!mounted || _isLoadingMessages || _isLoadingMore) return;
 
     // Check if user scrolled to bottom (newest messages)
     if (_scrollController.hasClients) {
@@ -689,6 +682,42 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
         // User is at the bottom, but don't automatically mark as read
         // _forceCheckVisibleMessages();
       }
+      
+      // Check if user scrolled to top (oldest messages) for pagination
+      final isAtTop = position.pixels >= position.maxScrollExtent;
+      if (isAtTop) {
+        _loadMoreMessages();
+      }
+    }
+  }
+
+  // Simple load more messages method
+  Future<void> _loadMoreMessages() async {
+    if (_isLoadingMore) return;
+    
+    _isLoadingMore = true;
+    _currentPage++;
+    
+    if (kDebugMode) {
+      print('=== Loading More Messages ===');
+      print('Page: $_currentPage');
+      print('Skip: ${_currentPage * 20}');
+    }
+    
+    try {
+      final cubit = context.read<ChatCustomerCubit>();
+      await cubit.getMessages(
+        widget.chatId, 
+        skip: _currentPage * 20, 
+        limit: 20
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error loading more messages: $e');
+      }
+      _currentPage--; // Revert page on error
+    } finally {
+      _isLoadingMore = false;
     }
   }
 
@@ -907,6 +936,10 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
     int retryCount = 0;
     const maxRetries = 3;
 
+    // Reset pagination state for initial load
+    _currentPage = 0;
+    _isLoadingMore = false;
+
     while (retryCount < maxRetries) {
       try {
         // Prevent multiple simultaneous calls
@@ -916,8 +949,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
         print(
             'DEBUG: Starting to fetch initial messages for chatId: ${widget.chatId} (attempt ${retryCount + 1})');
         final chatCubit = context.read<ChatCustomerCubit>();
-        await chatCubit.getMessages(widget.chatId,
-            skip: 0, limit: 20); // Only fetch first page
+        await chatCubit.getMessages(widget.chatId); // Only fetch first page
         final state = chatCubit.state;
 
         if (state is ChatCustomerMessagesSuccessState &&
@@ -1517,14 +1549,50 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
           final optimisticMessages =
               state.messages.where((m) => m.id.startsWith('temp_')).toList();
 
-          if (optimisticMessages.isNotEmpty && provider.messages.isNotEmpty) {
-            // If we have optimistic messages and existing messages, only add the optimistic ones
-            for (final optimisticMessage in optimisticMessages) {
-              provider.addOptimisticMessageIfNotExists(optimisticMessage);
+          // Handle pagination - if we're loading more messages, append them
+          if (_isLoadingMore) {
+            if (kDebugMode) {
+              print('=== Chat Screen: Handling Pagination ===');
+              print('Current messages in provider: ${provider.messages.length}');
+              print('New messages from API: ${state.messages.length}');
+              print('Has more messages: ${state.hasMore}');
+            }
+            
+            // Append new messages to existing ones for pagination
+            final existingMessages = provider.messages;
+            final allMessages = <ChatMessage>[];
+            
+            // Add existing messages first
+            allMessages.addAll(existingMessages);
+            
+            // Add new messages that aren't already in the list
+            for (final newMessage in state.messages) {
+              if (!existingMessages.any((existing) => existing.id == newMessage.id)) {
+                allMessages.add(newMessage);
+              }
+            }
+            
+            // Sort messages by date
+            allMessages.sort((a, b) => (a.messageDate ?? DateTime.now())
+                .compareTo(b.messageDate ?? DateTime.now()));
+            
+            provider.setMessages(allMessages);
+            
+            if (kDebugMode) {
+              print('Total messages after pagination: ${allMessages.length}');
+              print('Has more messages: ${state.hasMore}');
             }
           } else {
-            // For regular message updates or when no existing messages, replace all messages
-            provider.setMessages(state.messages);
+            // Regular message handling (not pagination)
+            if (optimisticMessages.isNotEmpty && provider.messages.isNotEmpty) {
+              // If we have optimistic messages and existing messages, only add the optimistic ones
+              for (final optimisticMessage in optimisticMessages) {
+                provider.addOptimisticMessageIfNotExists(optimisticMessage);
+              }
+            } else {
+              // For regular message updates or when no existing messages, replace all messages
+              provider.setMessages(state.messages);
+            }
           }
 
           // Check if there are new messages
@@ -1615,8 +1683,9 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
                       surfaceTintColor: Colors.white,
                       automaticallyImplyLeading: false,
                       leading: IconButton(
-                        onPressed: () => Navigator.pushReplacementNamed(
-                            context, Routes.chatCustomerRoute),
+                        onPressed: () =>
+                            Navigator.pushReplacementNamed(
+                                context, Routes.chatCustomerRoute),
                         icon: const Icon(Icons.arrow_back_ios,
                             color: Colors.black),
                       ),
@@ -1641,11 +1710,11 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
                                     'chat_screen_status_${widget.chatId}'),
                                 builder: (context, presenceProvider, child) {
                                   final provider =
-                                      ChatProviderInherited.of(context);
+                                  ChatProviderInherited.of(context);
                                   final otherUserId = provider.onlineUserId;
                                   final isTicketChat =
                                       provider.currentChat?.isTicketChat ==
-                                              true ||
+                                          true ||
                                           widget.isTicketChat;
                                   if (isTicketChat) {
                                     return const SizedBox.shrink();
@@ -1654,7 +1723,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
                                   // Get presence data for the other user
                                   final presence = otherUserId != null
                                       ? presenceProvider
-                                          .getUserPresence(otherUserId)
+                                      .getUserPresence(otherUserId)
                                       : null;
                                   final isOnline = presence?.isOnline ?? false;
 
@@ -1738,11 +1807,12 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
                                   parent: AlwaysScrollableScrollPhysics(),
                                 ),
                                 separatorBuilder: (context, index) =>
-                                    const SizedBox(
+                                const SizedBox(
                                   height: 10,
                                 ),
                                 controller: _scrollController,
-                                itemCount: messages.length,
+                                itemCount: messages.length +
+                                    (_isLoadingMore ? 1 : 0),
                                 reverse: true,
                                 itemBuilder: (context, index) {
                                   // Show loading indicator at the top (oldest messages) when loading more messages
@@ -1771,24 +1841,24 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
                                     // Since messageCreator.id is always company ID due to backend issue,
                                     // we need to use messageCreatorRole to determine the actual sender
                                     final isMe = (item.messageCreatorRole
-                                                    ?.toLowerCase() ==
-                                                'customer' &&
-                                            widget.userRole.toLowerCase() ==
-                                                'customer') ||
+                                        ?.toLowerCase() ==
+                                        'customer' &&
+                                        widget.userRole.toLowerCase() ==
+                                            'customer') ||
                                         (item.messageCreatorRole
-                                                    ?.toLowerCase() ==
-                                                'company' &&
+                                            ?.toLowerCase() ==
+                                            'company' &&
                                             widget.userRole.toLowerCase() ==
                                                 'company') ||
                                         (item.messageCreatorRole
-                                                    ?.toLowerCase() ==
-                                                'subaccount' &&
+                                            ?.toLowerCase() ==
+                                            'subaccount' &&
                                             widget.userRole.toLowerCase() ==
                                                 'subaccount');
                                     // Check if this message is truly new by comparing with the previous list
                                     // Only consider it new if it wasn't in the previous list AND we have a previous list
                                     const isNewMessage =
-                                        false; // Simplify for now
+                                    false; // Simplify for now
                                     double topMargin = 8.0;
                                     if (adjustedIndex < messages.length - 1) {
                                       final prev = messages[adjustedIndex + 1];
@@ -1798,12 +1868,12 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
                                                 widget.userId;
                                         if (prevIsMe == isMe) {
                                           topMargin =
-                                              2.0; // Same sender, small margin
+                                          2.0; // Same sender, small margin
                                         }
                                       }
                                     } else {
                                       topMargin =
-                                          16.0; // First message, larger margin
+                                      16.0; // First message, larger margin
                                     }
                                     return Padding(
                                       padding: EdgeInsets.only(
@@ -1815,20 +1885,32 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
                                       child: Builder(
                                         builder: (context) {
                                           final chatProvider =
-                                              ChatProviderInherited.of(context);
+                                          ChatProviderInherited.of(context);
                                           return _MessageBubble(
                                             key: ValueKey(
-                                                '${item.id}_${item.isRead}_${item.isSeen}_${item.isReceived}_${item.messageDate?.millisecondsSinceEpoch}_${item.invoice?.toString()}_${item.invoiceData?.toString()}_${item.messageInvoice?.toString()}_${item.messageInvoiceRef?.toString()}'),
+                                                '${item.id}_${item
+                                                    .isRead}_${item
+                                                    .isSeen}_${item
+                                                    .isReceived}_${item
+                                                    .messageDate
+                                                    ?.millisecondsSinceEpoch}_${item
+                                                    .invoice?.toString()}_${item
+                                                    .invoiceData
+                                                    ?.toString()}_${item
+                                                    .messageInvoice
+                                                    ?.toString()}_${item
+                                                    .messageInvoiceRef
+                                                    ?.toString()}'),
                                             message: item,
                                             isMe: isMe,
                                             lastReadMessageDateTime:
-                                                _lastReadMessageDateTime,
+                                            _lastReadMessageDateTime,
                                             index: adjustedIndex,
                                             isNewMessage: isNewMessage,
                                             chatId: widget.chatId,
                                             currentUserId: widget.userId,
                                             isRecipientOnline:
-                                                chatProvider.isOtherUserOnline,
+                                            chatProvider.isOtherUserOnline,
                                             onMessageVisible: () {
                                               // Use ChatProvider's visibility tracking for read status
                                               chatProvider.onMessageVisible(
@@ -1852,7 +1934,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
                             builder: (context, child) {
                               try {
                                 final provider =
-                                    ChatProviderInherited.of(context);
+                                ChatProviderInherited.of(context);
                                 final isChatClosed =
                                     provider.currentChat?.isClosed == true;
                                 final isChatDeleted =
@@ -1918,10 +2000,10 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
                           builder: (context) {
                             try {
                               final userStatusProvider =
-                                  Provider.of<UserStatusProvider>(context,
-                                      listen: true);
+                              Provider.of<UserStatusProvider>(context,
+                                  listen: true);
                               final provider =
-                                  ChatProviderInherited.of(context);
+                              ChatProviderInherited.of(context);
                               final isChatClosed =
                                   provider.currentChat?.isClosed == true;
                               final isChatDeleted =
@@ -1948,7 +2030,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
                               }
 
                               final typingUserNames =
-                                  otherTypingUsers.map((userId) {
+                              otherTypingUsers.map((userId) {
                                 // You can customize this to show actual user names
                                 return userId == otherUserId
                                     ? 'Someone'
@@ -1967,13 +2049,16 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
                                         valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                                Colors.grey[600]!),
+                                        AlwaysStoppedAnimation<Color>(
+                                            Colors.grey[600]!),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
-                                      '$typingUserNames ${otherTypingUsers.length == 1 ? 'is' : 'are'} typing...',
+                                      '$typingUserNames ${otherTypingUsers
+                                          .length == 1
+                                          ? 'is'
+                                          : 'are'} typing...',
                                       style: TextStyle(
                                         color: Colors.grey[600],
                                         fontSize: 12,
@@ -1997,8 +2082,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
             },
           ),
         );
-      },
-    );
+      });
   }
 }
 
