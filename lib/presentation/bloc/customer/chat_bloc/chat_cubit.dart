@@ -613,6 +613,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
   }
 
   void _handleMessageSent(Map<String, dynamic> data) {
+    debugPrint("last time added by waleed in _handleMessageSent");
     if (kDebugMode) {
       print('=== Customer Cubit: Handling Message Sent ===');
       print('Data: $data');
@@ -753,12 +754,19 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
 
   void _onNewMessageHandler(Map<String, dynamic> data) {
     if (kDebugMode) {
+      debugPrint("last time added by waleed in _onNewMessageHandler");
       print('=== CUBIT: New Message Event Handler CALLED ===');
       print('Raw data: $data');
       print('Socket connected: ${_chatService.socket.connected}');
       print('Socket ID: ${_chatService.socket.id}');
       print('Current state: ${state.runtimeType}');
       print('Handler called at: ${DateTime.now()}');
+    }
+    if (data['files'] != null) {
+      if (kDebugMode) {
+        print('=== Skipping message because data contains files[] ===');
+      }
+      return;
     }
 
     // Support both 'chat_id' and 'chatId' keys
@@ -1638,6 +1646,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
 
   Future<void> getMessages(String chatId,
       {int skip = 0, int limit = 20}) async {
+    debugPrint("last time added by waleed in getMessages");
     if (_isSyncing[chatId] == true) return;
     _isSyncing[chatId] = true;
     final List<ConnectivityResult> connectivityResult =
@@ -2290,6 +2299,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
     String? messageAudio,
     ProgressCallback? onProgress,
   }) async {
+    debugPrint("last time added by waleed in sendMessage");
     // Create tempId at the start of the method
     final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
 
@@ -2749,6 +2759,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
   }
 
   Future<void> getMoreMessages(String chatId, int skip, int limit) async {
+    debugPrint("last time added by waleed in getMoreMessages");
     final List<ConnectivityResult> connectivityResult =
     await (Connectivity().checkConnectivity());
     if (!connectivityResult.contains(ConnectivityResult.mobile) &&
@@ -3314,6 +3325,7 @@ class ChatCustomerCubit extends Cubit<ChatCustomerState> {
 
   /// Ensure chatMessages map is initialized for a chat
   Future<void> _ensureChatMessagesInitialized(String chatId) async {
+    debugPrint("last time added by waleed in _ensureChatMessagesInitialized");
     if (!chatMessages.containsKey(chatId) || chatMessages[chatId]!.isEmpty) {
       if (kDebugMode) {
         print('Initializing chatMessages map for chat: $chatId');

@@ -779,7 +779,12 @@ class ChatBusinessCubit extends Cubit<ChatBusinessState> {
       print('Current state: ${state.runtimeType}');
       print('Handler called at: ${DateTime.now()}');
     }
-
+    if (data['files'] != null) {
+      if (kDebugMode) {
+        print('=== Skipping message because data contains files[] ===');
+      }
+      return;
+    }
     // Support both 'chat_id' and 'chatId' keys
     final chatId = data['chat_id'] ?? data['chatId'];
     Map<String, dynamic>? messageData;
@@ -1706,6 +1711,7 @@ class ChatBusinessCubit extends Cubit<ChatBusinessState> {
 
   Future<void> getMessages(String chatId,
       {int skip = 0, int limit = 20}) async {
+    debugPrint("last time added by waleed in getMessages in business");
     final List<ConnectivityResult> connectivityResult =
         await (Connectivity().checkConnectivity());
     if (!connectivityResult.contains(ConnectivityResult.mobile) &&

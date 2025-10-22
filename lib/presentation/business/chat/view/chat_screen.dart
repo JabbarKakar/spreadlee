@@ -367,6 +367,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
   DateTime? _lastReadMessageDateTime;
   bool _isInitialized = false;
   bool _isTyping = false;
+  bool _wasScreenInactive = false; // Track if screen was inactive during reconnection
 
   // Simple pagination variables
   int _currentPage = 0;
@@ -715,28 +716,36 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
     debugPrint("Checking the socket");
     if (state == AppLifecycleState.resumed) {
       if (kDebugMode) {
-        print('=== ChatScreen: App Resumed ===');
+        print('=== Business ChatScreen: App Resumed ===');
         print('Attempting to reconnect socket...');
+        print('Screen was inactive: $_wasScreenInactive');
       }
       
       // Reconnect socket when app resumes from background/locked screen
       _reconnectSocketAfterResume();
       
+      // Reset the flag after reconnection
+      _wasScreenInactive = false;
+      
       // App became active, force check visible messages
       _forceCheckVisibleMessages();
     } else if (state == AppLifecycleState.paused) {
       if (kDebugMode) {
-        print('=== ChatScreen: App Paused/Screen Locked ===');
+        print('=== Business ChatScreen: App Paused/Screen Locked ===');
       }
+      
+      // Mark that screen was inactive
+      _wasScreenInactive = true;
+      
       // Leave chat room to optimize battery and prevent unnecessary updates
       try {
         widget.chatProvider.leaveChatRoom(widget.chatId);
         if (kDebugMode) {
-          print('ChatScreen: Left chat room: ${widget.chatId}');
+          print('Business ChatScreen: Left chat room: ${widget.chatId}');
         }
       } catch (e) {
         if (kDebugMode) {
-          print('ChatScreen: Error leaving chat room: $e');
+          print('Business ChatScreen: Error leaving chat room: $e');
         }
       }
     }
@@ -755,6 +764,9 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
           print('=== Business ChatScreen: Socket Health Check - DISCONNECTED ===');
           print('Attempting automatic reconnection...');
         }
+        
+        // For socket health check, assume screen was active (no getMessages needed)
+        _wasScreenInactive = false;
         
         // Attempt reconnection
         await _reconnectSocketAfterResume();
@@ -882,14 +894,29 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
           print('Business ChatScreen: Rejoined chat room: ${widget.chatId}');
         }
         
-        // Fetch any missed messages from server
+        // Fetch any missed messages from server only if screen was active
         if (mounted) {
           try {
-            final cubit = context.read<ChatBusinessCubit>();
-            await cubit.getMessages(widget.chatId);
-            
             if (kDebugMode) {
-              print('Business ChatScreen: Fetched missed messages after reconnection');
+              print('Business ChatScreen: Checking if should fetch messages...');
+              print('Business ChatScreen: _wasScreenInactive = $_wasScreenInactive');
+            }
+            
+            // Check if the screen was active (not paused/backgrounded)
+            if (!_wasScreenInactive) {
+              if (kDebugMode) {
+                print('Business ChatScreen: Screen was active - calling getMessages to refresh current messages...');
+              }
+              final cubit = context.read<ChatBusinessCubit>();
+              await cubit.getMessages(widget.chatId);
+              
+              if (kDebugMode) {
+                print('Business ChatScreen: Refreshed messages after reconnection (screen was active)');
+              }
+            } else {
+              if (kDebugMode) {
+                print('Business ChatScreen: Screen was inactive - skipping getMessages (no need to fetch)');
+              }
             }
           } catch (e) {
             if (kDebugMode) {
@@ -1684,6 +1711,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
     // Force a rebuild of the message list
     setState(() {});
   }
+
 
   @override
   Widget build(BuildContext context) {

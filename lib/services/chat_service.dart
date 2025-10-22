@@ -579,6 +579,7 @@ class ChatService {
       }
       socket.on('message_sent', (data) {
         if (kDebugMode) {
+          debugPrint("message_sent added by waleed  ${data.toString()}");
           print('=== Received Message Sent Event ===');
           print('Raw data: $data');
           print('Data type: ${data.runtimeType}');
@@ -622,6 +623,7 @@ class ChatService {
 
       // Add messages_updated event listener
       socket.on('messages_updated', (data) {
+        debugPrint("messages_updated added by waleed  ${data.toString()}");
         try {
           // Handle case where data is a List with the actual data at index 0
           final actualData = data is List ? data[0] : data;
@@ -713,7 +715,7 @@ class ChatService {
 
     // Add temporary listener for this specific message
     socket.on('new_message', messageListener);
-
+    debugPrint("new_message added by waleed  ");
     // Set timeout
     timeoutTimer = Timer(const Duration(seconds: 15), () {
       if (!completer.isCompleted) {
@@ -736,6 +738,7 @@ class ChatService {
       }
 
       socket.emitWithAck('send_message', messageData, ack: (data) {
+        debugPrint("send_message added by waleed  ${data.toString()}");
         if (data == null) {
           if (kDebugMode) {
             print('Warning: Received null acknowledgment');
@@ -820,6 +823,7 @@ class ChatService {
 
       // Use the exact event name and structure the backend expects
       socket.emitWithAck('upload_file', fileData, ack: (data) {
+        debugPrint("upload_file added by waleed  ${data.toString()}");
         timeoutTimer?.cancel();
         print('Received upload_file acknowledgment: $data');
 
@@ -1056,7 +1060,7 @@ class ChatService {
       // Use the exact event name and structure the backend expects
       socket.emitWithAck('upload_file', videoData, ack: (data) {
         timeoutTimer?.cancel();
-        print('Received upload_file acknowledgment for video: $data');
+        debugPrint("upload_file added by waleed  ${data.toString()}");
 
         if (data == null) {
           print('Warning: Received null acknowledgment for video upload');
@@ -1163,7 +1167,7 @@ class ChatService {
       // Use the exact event name and structure the backend expects
       socket.emitWithAck('upload_file', imageData, ack: (data) {
         timeoutTimer?.cancel();
-        print('Received upload_file acknowledgment for image: $data');
+        debugPrint("upload_file added by waleed  ${data.toString()}");
 
         if (data == null) {
           print('Warning: Received null acknowledgment for image upload');
@@ -1259,7 +1263,7 @@ class ChatService {
       // Use the exact event name and structure the backend expects
       socket.emitWithAck('upload_file', documentData, ack: (data) {
         timeoutTimer?.cancel();
-        print('Received upload_file acknowledgment for document: $data');
+        debugPrint("upload_file added by waleed  ${data.toString()}");
 
         if (data == null) {
           print('Warning: Received null acknowledgment for document upload');
@@ -2325,6 +2329,7 @@ class ChatService {
     bool ackReceived = false;
 
     socket.emitWithAck('mark_messages_read', data, ack: (response) {
+      debugPrint("mark_messages_read ");
       ackReceived = true;
       if (kDebugMode) {
         print('✅✅✅ Mark Messages Read Acknowledgment RECEIVED! ===');
@@ -2349,6 +2354,7 @@ class ChatService {
     }
 
     socket.emitWithAck('mark_messages_delivered', data, ack: (response) {
+      debugPrint("mark_messages_read ");
       if (kDebugMode) {
         print('=== Mark Messages Delivered Acknowledgment ===');
         print('Response: $response');
@@ -2625,6 +2631,7 @@ class ChatService {
         'page': page,
         'pageSize': pageSize,
       }, ack: (data) {
+        debugPrint("get_messages added by waleed  ${data.toString()}");
         if (kDebugMode) {
           print('Received get_messages acknowledgment: $data');
         }

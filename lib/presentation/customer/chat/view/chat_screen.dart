@@ -357,6 +357,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
   DateTime? _lastReadMessageDateTime;
   bool _isInitialized = false;
   bool _hasFetchedInitialMessages = false;
+  bool _wasScreenInactive = false; // Track if screen was inactive during reconnection
 
   // Track previous message IDs to identify new messages
   final Set<String> _previousMessageIds = <String>{};
@@ -437,14 +438,22 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
       if (kDebugMode) {
         print('=== Customer ChatScreen: App Resumed ===');
         print('Attempting to reconnect socket...');
+        print('Screen was inactive: $_wasScreenInactive');
       }
       
       // Reconnect socket when app resumes from background/locked screen
       _reconnectSocketAfterResume();
+      
+      // Reset the flag after reconnection
+      _wasScreenInactive = false;
     } else if (state == AppLifecycleState.paused) {
       if (kDebugMode) {
         print('=== Customer ChatScreen: App Paused/Screen Locked ===');
       }
+      
+      // Mark that screen was inactive
+      _wasScreenInactive = true;
+      
       // Leave chat room to optimize battery and prevent unnecessary updates
       try {
         widget.chatProvider.leaveChatRoom(widget.chatId);
@@ -472,6 +481,9 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
           print('=== Customer ChatScreen: Socket Health Check - DISCONNECTED ===');
           print('Attempting automatic reconnection...');
         }
+        
+        // For socket health check, assume screen was active (no getMessages needed)
+        _wasScreenInactive = false;
         
         // Attempt reconnection
         await _reconnectSocketAfterResume();
@@ -599,14 +611,29 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
           print('Customer ChatScreen: Rejoined chat room: ${widget.chatId}');
         }
         
-        // Fetch any missed messages from server
+        // Fetch any missed messages from server only if screen was inactive
         if (mounted) {
           try {
-            final cubit = context.read<ChatCustomerCubit>();
-            await cubit.getMessages(widget.chatId);
-            
             if (kDebugMode) {
-              print('Customer ChatScreen: Fetched missed messages after reconnection');
+              print('Customer ChatScreen: Checking if should fetch messages...');
+              print('Customer ChatScreen: _wasScreenInactive = $_wasScreenInactive');
+            }
+            
+            // Check if the screen was active (not paused/backgrounded)
+            if (!_wasScreenInactive) {
+              if (kDebugMode) {
+                print('Customer ChatScreen: Screen was active - calling getMessages to refresh current messages...');
+              }
+              final cubit = context.read<ChatCustomerCubit>();
+              await cubit.getMessages(widget.chatId);
+              
+              if (kDebugMode) {
+                print('Customer ChatScreen: Refreshed messages after reconnection (screen was active)');
+              }
+            } else {
+              if (kDebugMode) {
+                print('Customer ChatScreen: Screen was inactive - skipping getMessages (no need to fetch)');
+              }
             }
           } catch (e) {
             if (kDebugMode) {
@@ -1499,6 +1526,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent>
     // Force a rebuild of the message list
     setState(() {});
   }
+
 
   /// Mark messages as read only when user explicitly views the chat or sends a message
   void _markMessagesAsReadWhenAppropriate() {
